@@ -1,5 +1,11 @@
 = Suptac
-:toc:
+Tobias Aichinger
+:toc: left
+:sectnums:
+:toclevels: 3
+:table-caption:
+:linkattrs:
+:experimental:
 
 This is an advanced implementation of tic-tac-toe which has some special rules.
 
