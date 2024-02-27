@@ -20,3 +20,20 @@ This is an advanced implementation of tic-tac-toe which has some special rules.
 == How to run
 
 This is still a wip and does not work yet
+
+=== Implementation infos
+
+gRPC-web is hell, angular 17 just dropped support for require which breaks protoc converts to typescript but angular 16 can do it just fine?!
+on tonic you have to enable tonic-web to be able to enable http1 which is the basisc for grpc-web
+
+this is the current command to generete ts classes but you need to install protoc-gen-js which also breaks since protoc version 20?!?! 
+
+what is going on with gRPC...
+
+TODO: future maybe make one proto folder currently just copied the proto file to the frontend
+
+[source, sh]
+----
+# Just to remember
+protoc --plugin="/home/pha/suptac/web/node_modules/.bin/protoc-gen-ts" --js_out="import_style=commonjs,binary:generated" --ts_out="service=grpc-web:generated" subtac.proto
+----
