@@ -14,7 +14,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Greeter listening on {}", addr);
 
     Server::builder()
-        .add_service(GreetingServer::new(server))
+        .accept_http1(true)
+        .add_service(tonic_web::enable(GreetingServer::new(server)))
         .serve(addr)
         .await?;
 
