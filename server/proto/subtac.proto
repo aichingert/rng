@@ -2,14 +2,18 @@ syntax = "proto3";
 
 package suptac;
 
-service Greeting {
-  rpc Greet (HelloRequest) returns (HelloResponse) {}
+message JoinRequest {
+  string user = 1;
 }
 
-message HelloRequest {
-  string name = 1;
+message Message {
+  string content = 1;
 }
 
-message HelloResponse {
-  string greeting = 1;
+message Empty {}
+
+service Lobby {
+  rpc JoinLobby (JoinRequest) returns (stream Message);
+  rpc SendMessage (Message) returns (Empty);
 }
+

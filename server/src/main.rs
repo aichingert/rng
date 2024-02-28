@@ -3,19 +3,18 @@ use tonic::transport::Server;
 mod suptac;
 mod server;
 
-use suptac::greeting_server::GreetingServer;
-use server::Greeter;
+use suptac::lobby_server::LobbyServer;
+use server::LobbyService;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "127.0.0.1:9800".parse().unwrap();
-    let server = Greeter::default();
+    let server = LobbyService::new();
 
-    println!("Greeter listening on {}", addr);
+    println!("Lobby listening on {}", addr);
 
     Server::builder()
-        .accept_http1(true)
-        .add_service(tonic_web::enable(GreetingServer::new(server)))
+        .add_service(LobbyServer::new(server))
         .serve(addr)
         .await?;
 
