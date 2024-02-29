@@ -14,7 +14,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Lobby listening on {}", addr);
 
     Server::builder()
-        .add_service(LobbyServer::new(server))
+        .accept_http1(true)
+        .add_service(tonic_web::enable(LobbyServer::new(server)))
         .serve(addr)
         .await?;
 

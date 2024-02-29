@@ -10,7 +10,7 @@ prost = "0.12.3"
 tokio = { version = "1.36.0", features = ["full"] }
 tokio-stream = "0.1.14"
 tonic = "0.11.0"
-# tonic-web = "0.11.0" => needed when I figure out how to use it with angular 17 
+tonic-web = "0.11.0"
 
 [build-dependencies]
 tonic-build = "0.11.0"
