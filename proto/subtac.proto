@@ -16,4 +16,3 @@ service Lobby {
   rpc JoinLobby (JoinRequest) returns (stream Message);
   rpc SendMessage (Message) returns (Empty);
 }
-

@@ -23,23 +23,4 @@ This is still a wip and does not work yet
 
 === Implementation infos
 
-* Ranting
-
-----
-gRPC-web is hell, angular 17 just dropped support for require which breaks protoc converts to typescript but angular 16 can do it just fine?!
-on tonic you have to enable tonic-web to be able to enable http1 which is the basisc for grpc-web
-
-this is the current command to generete ts classes but you need to install protoc-gen-js which also breaks since protoc version 20?!?! 
-
-what is going on with gRPC...
-
-TODO: future maybe make one proto folder currently just copied the proto file to the frontend
-
-# Just to remember
-protoc --plugin="/home/pha/suptac/web/node_modules/.bin/protoc-gen-ts" --js_out="import_style=commonjs,binary:generated" --ts_out="service=grpc-web:generated" subtac.proto
-----
-
-* Actual infos (for me)
-** going to wait for angular 17 (support = wait until someone comments on the pull request)
-** until then going to use a rust gRPC client to test the server and implement the logic there
-** current state of the server is that messages get streamed
+* Angular 17 works with protobuf-ts
