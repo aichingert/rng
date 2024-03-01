@@ -14,6 +14,19 @@ struct Shared {
     players: HashMap<String, mpsc::Sender<Message>>,
 }
 
+impl Shared {
+    async fn broadcast(&self, msg: Message) {
+        for (name, tx) in &self.players {
+            match tx.send(msg.clone()).await {
+                Ok(_) => {},
+                Err(_) => {
+                    eprintln!("broadcast failed for {name}, {msg:?}");
+                }
+            }
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct LobbyService {
     shared: Arc<RwLock<Shared>>,
@@ -68,9 +81,7 @@ impl Lobby for LobbyService {
         &self,
         request: Request<Message>,
     ) -> Result<Response<Empty>, Status> {
-        let content = request.into_inner().content;
-
-        dbg!(content);
+        self.shared.read().await.broadcast(request.into_inner()).await;
 
         Ok(Response::new(Empty {}))
     }

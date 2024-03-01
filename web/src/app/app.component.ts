@@ -12,11 +12,20 @@ import {JoinRequest, Message} from "../shared/subtac";
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
-  title = 'web';
+  user = 'web';
+  msgs: string[] = [];
 
   ngOnInit() {
     const transport = new GrpcWebFetchTransport({baseUrl: "http://localhost:9800"});
     const client = new LobbyClient(transport);
+
+    const msg: Message = {
+      content: "Hi guys",
+    };
+
+    client.sendMessage(msg).then(() => {
+      this.msgs.push(msg.content);
+    });
 
     const req: JoinRequest = {
       user: "Tobias",
@@ -25,8 +34,7 @@ export class AppComponent implements OnInit {
     const call = client.joinLobby(req);
 
     call.responses.onMessage((msg: Message) => {
-      console.log(msg);
-      this.title = msg.content;
+      this.msgs.push(msg.content);
     });
   }
 }
