@@ -1,0 +1,7 @@
+<h1>This is a chat</h1>
+
+@for (msg of messages; track msg) {
+  <p>{{msg}}</p>
+}
+
+<input (keyup)="onKey($event)">
