@@ -1,6 +1,7 @@
 Cargo.lock
 target/
 .idea/
+data/
 
 # Logs
 logs
@@ -132,3 +133,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+server/gen/src
+
+
