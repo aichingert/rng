@@ -24,11 +24,10 @@ pub struct NewUser<'a> {
 impl User {
     pub fn create(
         conn: &mut PgConnection, 
-        username: &str, 
-        password: &str
+        user: NewUser,
     ) -> Result<User, diesel::result::Error> {
         diesel::insert_into(users::table)
-            .values(NewUser { username, password })
+            .values(user)
             .returning(User::as_returning())
             .get_result(conn)
     }

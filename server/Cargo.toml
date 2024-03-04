@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 bcrypt = "0.15.0"
-diesel = { version = "2.1.4", features = ["postgres"] }
+diesel = { version = "2.1.4", features = ["postgres", "r2d2"] }
 dotenvy = "0.15.7"
 hmac = "0.12.1"
 jwt = "0.16.0"
