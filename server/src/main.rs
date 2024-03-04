@@ -1,23 +1,21 @@
-use tonic::transport::Server;
+use std::env;
 
-mod suptac;
-mod server;
+use diesel::{PgConnection, Connection};
+use dotenvy::dotenv;
 
-use suptac::lobby_server::LobbyServer;
-use server::LobbyService;
+mod models;
+mod schema;
+
+pub fn get_connection() -> PgConnection {
+    let db_url = env::var("DATABASE_URL").expect("DATABSE_URL must be set");
+    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error: connecting to {}", db_url))
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "127.0.0.1:9800".parse().unwrap();
-    let server = LobbyService::new();
+    dotenv().ok();
 
-    println!("Lobby listening on {}", addr);
-
-    Server::builder()
-        .accept_http1(true)
-        .add_service(tonic_web::enable(LobbyServer::new(server)))
-        .serve(addr)
-        .await?;
+    let mut database = get_connection();
 
     Ok(())
 }
