@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package lobby;
+
+message JoinRequest {
+    int32 channel = 1;
+    string username = 2;
+}
+
+message Channel {
+    int32 ids = 1;
+}
+
+message JoinResult {
+    string status = 1;
+}
+
+message Empty {}
+
+service Lobby {
+    rpc JoinChannel (JoinRequest) returns (JoinResult);
+    rpc GetChannels (Empty) returns (stream Channel);
+}
+

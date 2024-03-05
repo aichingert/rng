@@ -29,9 +29,11 @@ impl Service {
 
 const INV: &'static str = "Invalid username or password";
 
+type AuthResult<T> = Result<Response<T>, Status>;
+
 #[tonic::async_trait]
 impl Auth for Service {
-    async fn login(&self, request: Request<LoginRequest>) -> Result<Response<Token>, Status> {
+    async fn login(&self, request: Request<LoginRequest>) -> AuthResult<Token> {
         let db = self.db.lock();
         let data = request.into_inner();
 
@@ -47,7 +49,7 @@ impl Auth for Service {
         Ok(Response::new(reply))
     }
 
-    async fn register(&self, request: Request<RegisterRequest>) -> Result<Response<Token>, Status> {
+    async fn register(&self, request: Request<RegisterRequest>) -> AuthResult<Token> {
         let db = self.db.lock();
         let data = request.into_inner();
 
