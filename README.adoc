@@ -19,8 +19,27 @@ This is an advanced implementation of tic-tac-toe which has some special rules.
 
 == How to run
 
+* dependencies
+
+[source, sh]
+----
+cargo install protoc-gen-prost protoc-gen-prost-serde protoc-gen-tonic protoc-gen-prost-crate
+----
+
+* grpc-web
+** you may need to generate the protofiles yourself if I don't figure it out to do it during ng build
+** if that is the case you can find in the package.json how to do it
+
 This is still a wip and does not work yet
 
 === Implementation infos
 
 * Angular 17 works with protobuf-ts
+
+* server architecture
+** lobby 
+*** has amount of users
+*** has rpc method which sends channel information
+**** new channel with x users where you can join to play
+**** already existing channels are also visible to spectate
+
