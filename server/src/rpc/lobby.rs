@@ -1,20 +1,25 @@
+use std::pin::Pin;
+use std::sync::Arc;
 use std::collections::HashMap;
 
 use tonic::{Request, Response, Status};
 use tokio::sync::{mpsc, RwLock};
-use tokio::stream::{wrappers::ReceiverStream, Stream};
+use tokio_stream::{wrappers::ReceiverStream, Stream};
 
 use protos::lobby::{
     lobby_server::Lobby, JoinRequest, JoinResult, Channel, Empty
 };
 use crate::models::User;
 
+struct TODO {}
+
+
 // TODO: what to send
 pub struct MChannel {
     id: i32,
     spec_id: i32,
-    players: HashMap<String, mpsc::Sender<TODO>,
-    spectators: HashMap<i32, mpsc::Sender<TODO>,
+    players: HashMap<String, mpsc::Sender<TODO>>,
+    spectators: HashMap<i32, mpsc::Sender<TODO>>,
 }
 
 pub struct Shared {
@@ -30,12 +35,12 @@ impl Shared {
         }
     }
 
-    async pub fn join_or_create_channel(&mut self, user: String, channel: i32) {
+    pub async fn join_or_create_channel(&mut self, user: String, channel: i32) {
     }
 
-    async pub fn remove_user(&mut self, user: &String) {
-        let id = self.users.remove(user);
-        self.channels.players.get_mut(&id).unwrap().remove(user);
+    pub async fn remove_user(&mut self, user: &String) {
+        let id = self.users.remove(user).unwrap();
+        self.channels.get_mut(&id).unwrap().players.remove(user);
     }
 }
 
@@ -57,40 +62,16 @@ impl Lobby for Service {
     // JoinChannel (joinreq) joinres, GetChannels (empty) stream channel
 
     // TODO: stream type
-    type TODOStream = ResponseStream<TODO>
+    // type TODOStream = ResponseStream<TODO>;
 
-    async fn join_channel(&self, req: Request<JoinRequest>) -> LobbyResult<Self::JoinResult> {
-        let JoinRequest {channel, username} = req.into_iter();
-
-        if self.shared.read().await.users.get(&username).map_or(false, |chnl| *chnl == channel) {
-            return Err(Status::already_exists("you idiot"));
-        }
-
-        let (stream_tx, stream_rx) = mpsc::channel(1);
-        let (tx, mut rx) = mpsc::channel(1);
-
-        self.shared.write().await.join_or_create_channel(username.clone(), channel).await;
-
-        let shared_clone = self.shared.clone();
-
-        tokio::spawn(async move {
-            while let Some(msg) = rx.recv().await {
-                match stream_tx.send(Ok(msg)).await {
-                    Ok(_) => {},
-                    Err(_) => {
-                        shared_clone.write().await.remove_user(&username).await;
-                    }
-                }
-            }
-        });
-
-        Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
+    async fn join_channel(&self, req: Request<JoinRequest>) -> LobbyResult<JoinResult> {
+        todo!()
     } 
 
-    type ChannelStream = ResponseStream<Channel>;
+    type GetChannelsStream = ResponseStream<Channel>;
 
-    async fn get_channels(&self, req: Request<Empty>) -> LobbyResult<Self.:ChannelStream> {
-
+    async fn get_channels(&self, req: Request<Empty>) -> LobbyResult<Self::GetChannelsStream> {
+        todo!()
     }
 
 }
