@@ -39,7 +39,8 @@ This is still a wip and does not work yet
 * server architecture
 ** lobby 
 *** has amount of users
-*** has rpc method which sends channel information
-**** new channel with x users where you can join to play
-**** already existing channels are also visible to spectate
+*** has rpc method which sends channel informations (amount, new, deleted)
 
+** channel
+*** has its a onw rpc service
+*** which handels spectators and players

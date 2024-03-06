@@ -1,9 +1,15 @@
 use std::env;
+use std::sync::Arc;
+use std::collections::HashMap;
 
 use diesel::{PgConnection, Connection};
 use dotenvy::dotenv;
-use protos::auth::auth_server::AuthServer;
+use protos::{
+    auth::auth_server::AuthServer,
+    lobby::lobby_server::LobbyServer,
+};
 use tonic::transport::Server;
+use tokio::sync::RwLock;
 
 mod rpc;
 mod models;
@@ -18,11 +24,16 @@ pub fn get_connection() -> PgConnection {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let db = get_connection();
     let addr = "127.0.0.1:9800".parse()?;
 
+    let channels: rpc::channel::Channels = Arc::new(RwLock::new(HashMap::new()));
+    let auth_service = rpc::auth::Service::new(get_connection());
+    let lobby_service = rpc::lobby::Service::new(channels);
+
     Server::builder()
-        .add_service(AuthServer::new(rpc::auth::Service::new(db)))
+        .accept_http1(true)
+        .add_service(tonic_web::enable(AuthServer::new(auth_service)))
+        .add_service(tonic_web::enable(LobbyServer::new(lobby_service)))
         .serve(addr)
         .await?;
 

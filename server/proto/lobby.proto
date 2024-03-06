@@ -7,8 +7,8 @@ message JoinRequest {
     string username = 2;
 }
 
-message Channel {
-    int32 ids = 1;
+message AvailableChannels {
+    repeated int32 ids = 1;
 }
 
 message JoinResult {
@@ -18,7 +18,6 @@ message JoinResult {
 message Empty {}
 
 service Lobby {
-    rpc JoinChannel (JoinRequest) returns (JoinResult);
-    rpc GetChannels (Empty) returns (stream Channel);
+    rpc GetAvailableChannels (Empty) returns (AvailableChannels);
 }
 
