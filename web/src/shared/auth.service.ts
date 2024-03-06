@@ -12,11 +12,6 @@ export class AuthService {
   ) { }
 
   canActivate(): boolean {
-    if (this.lobbyService.hasUsername()) {
-      return true;
-    } else {
-      this.router.navigate(["login"]).catch(console.error);
-      return false;
-    }
+    return true;
   }
 }

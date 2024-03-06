@@ -1,47 +1,24 @@
 import { Injectable } from '@angular/core';
 import {GrpcWebFetchTransport} from "@protobuf-ts/grpcweb-transport";
-import {LobbyClient} from "./generated/subtac.client";
-import {JoinRequest, Message} from "./generated/subtac";
-import {BehaviorSubject, Observable} from "rxjs";
-import {ServerStreamingCall} from "@protobuf-ts/runtime-rpc";
+import {UnaryCall} from "@protobuf-ts/runtime-rpc";
+import {LobbyClient} from "./generated/lobby.client";
+import {AvailableChannels, Empty} from "./generated/lobby";
 
 @Injectable({
   providedIn: 'root'
 })
 export class LobbyService {
-  private username: string = "";
   private client = new LobbyClient(new GrpcWebFetchTransport({baseUrl: "http://localhost:9800"}));
-  private messages: BehaviorSubject<Message> = new BehaviorSubject<Message>({content: "joined"});
+  // TODO: make stream for new and deleted channels
+  // private channelStream: BehaviorSubject<Channels> = new BehaviorSubject<AvailableChannels>({ids: []});
 
-  constructor() {}
+  public channels: number[] = [];
 
-  public hasUsername(): boolean {
-    return this.username.trim().length != 0
-  }
+  constructor() {
+    const call: UnaryCall<Empty, AvailableChannels> = this.client.getAvailableChannels({/*Empty*/});
 
-  public joinQueue(): void {
-    const req: JoinRequest = {user: this.username};
-    const call: ServerStreamingCall<JoinRequest, Message> = this.client.joinLobby(req);
-
-    call.responses.onMessage((msg: Message) => {
-      this.messages.next(msg);
-    })
-  }
-
-  public sendMessage(msg: Message): void {
-    this.client.sendMessage(msg).status.catch(console.error);
-  }
-
-  public setUsername(username: string): boolean {
-    this.username = username;
-    return this.hasUsername();
-  }
-
-  public get getUsername(): string {
-    return this.username;
-  }
-
-  public get getMessages(): Observable<Message> {
-    return this.messages.asObservable();
+    call.response.then((available: AvailableChannels) => {
+      this.channels = available.ids;
+    }).catch(console.error);
   }
 }

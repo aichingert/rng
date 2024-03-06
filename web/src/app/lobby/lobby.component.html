@@ -1,3 +1,11 @@
 <div class="play-button">
-  <button class="mat-big-button" mat-raised-button color="primary" (click)="joinQueue($event)">Play</button>
+  <button class="mat-big-button" mat-raised-button color="primary" (click)="onClick($event)">Play</button>
+</div>
+
+<div style="display: flex; justify-content: center">
+  @for (channel of lobbyService.channels; track channel) {
+    <div style="padding: 2px 16px;">
+      <h2 style="color: aliceblue">{{ channel }}</h2>
+    </div>
+  }
 </div>

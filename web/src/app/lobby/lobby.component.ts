@@ -18,13 +18,7 @@ export class LobbyComponent {
     public lobbyService: LobbyService,
   ) {}
 
-  joinQueue(_event: Event): void {
-    if (!this.lobbyService.hasUsername()) {
-      this.router.navigate((["login"])).catch(e => console.error(e));
-      return;
-    }
+  onClick(_event: Event): void {
 
-    this.lobbyService.joinQueue();
-    this.router.navigate(["play"]).then(r => {});
   }
 }

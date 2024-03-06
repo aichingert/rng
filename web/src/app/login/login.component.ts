@@ -18,15 +18,5 @@ export class LoginComponent {
   ) {}
 
   public onKey(event: KeyboardEvent): void {
-    if (event.key === "Enter") {
-      if (!this.lobbyService.setUsername(this.username)) {
-        return;
-      }
-
-      this.router.navigate(["lobby"]).catch(e => console.error(e));
-      return;
-    }
-
-    this.username += (event.target as HTMLInputElement).value;
   }
 }
