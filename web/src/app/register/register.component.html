@@ -1,9 +1,9 @@
 <mat-card>
   <mat-card-content>
     <form #loginForm="ngForm" (ngSubmit)="onSubmit($event)">
-      <h2 style="color: aliceblue">Login</h2>
+      <h2 style="color: aliceblue">Register</h2>
 
-      @if (invalidLogin) {
+      @if (invalidRegistration) {
         <mat-error>
           The username and password were not recognized
         </mat-error>
