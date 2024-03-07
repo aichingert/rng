@@ -2,22 +2,30 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::collections::HashMap;
 
+use uuid::Uuid;
 use tonic::{Request, Response, Status};
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::{wrappers::ReceiverStream, Stream};
-use protos::lobby::{
-    lobby_server::Lobby, JoinRequest, JoinResult, AvailableChannels, Empty
-};
+use protos::lobby::{lobby_server::Lobby, AvailableChannels, ChannelState, Empty};
 
 use super::channel::{Channels, Channel};
+use crate::models::User;
+
+pub type Users = Arc<RwLock<HashMap<Uuid, mpsc::Sender<ChannelState>>>>;
 
 pub struct Service {
+    users: Users,
     channels: Channels,
+    queue: Arc<RwLock<Option<User>>>,
 }
 
 impl Service {
-    pub fn new(channels: Channels) -> Self {
-        Self { channels }
+    pub fn new(channels: Channels, users: Users) -> Self {
+        Self {
+            users,
+            channels,
+            queue: Arc::new(RwLock::new(None)),
+        }
     }
 }
 
@@ -26,12 +34,31 @@ type ResponseStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send>>;
 
 #[tonic::async_trait]
 impl Lobby for Service {
-    async fn get_available_channels(&self, _req: Request<Empty>) -> LobbyResult<AvailableChannels> {
-        let ids = self.channels.read().await.keys().cloned().collect::<Vec<i32>>();
-        self.channels.write().await.insert(ids.len() as i32, Channel::new());
+    async fn get_available_channels(&self, _r: Request<Empty>) -> LobbyResult<AvailableChannels> {
+        Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
+    }
 
-        println!("IDS: {ids:?}");
+    type GetChannelStatesStream = ResponseStream<ChannelState>;
 
-        Ok(Response::new(AvailableChannels { ids }))
+    async fn get_channel_states(&self, _r: Request<Empty>) -> LobbyResult<Self::GetChannelStatesStream> {
+        let (stream_tx, stream_rx) = mpsc::channel(1);
+
+        let (tx, mut rx) = mpsc::channel(1);
+        let ident = Uuid::new_v4();
+        let users_clone = self.users.clone();
+
+        tokio::spawn(async move {
+            while let Some(state) = rx.recv().await {
+                match stream_tx.send(Ok(state)).await {
+                    Ok(_) => {},
+                    Err(_) => {
+                        eprintln!("ERROR: failed to send tx stream to {}", &ident);
+                        users_clone.write().await.remove(&ident);
+                    }
+                }
+            }
+        });
+
+        Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
     }
 }

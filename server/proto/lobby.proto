@@ -2,22 +2,19 @@ syntax = "proto3";
 
 package lobby;
 
-message JoinRequest {
-    int32 channel = 1;
-    string username = 2;
-}
-
 message AvailableChannels {
     repeated int32 ids = 1;
 }
 
-message JoinResult {
-    string status = 1;
+message ChannelState {
+    int32 id = 1;
+    bool created = 2;
 }
 
 message Empty {}
 
 service Lobby {
     rpc GetAvailableChannels (Empty) returns (AvailableChannels);
+    rpc GetChannelStates (Empty) returns (stream ChannelState);
 }
 

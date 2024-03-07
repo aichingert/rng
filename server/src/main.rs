@@ -27,8 +27,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "127.0.0.1:9800".parse()?;
 
     let channels: rpc::channel::Channels = Arc::new(RwLock::new(HashMap::new()));
+    let users: rpc::lobby::Users = Arc::new(RwLock::new(HashMap::new()));
+
     let auth_service = rpc::auth::Service::new(get_connection());
-    let lobby_service = rpc::lobby::Service::new(channels);
+    let lobby_service = rpc::lobby::Service::new(channels, users);
 
     Server::builder()
         .accept_http1(true)

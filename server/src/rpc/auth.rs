@@ -71,14 +71,14 @@ struct GenerateClaimsError;
 
 pub struct VerifyTokenError;
 
-pub fn verify_token(token: &str) -> Result<bool, VerifyTokenError> {
+pub fn verify_token(token: &str) -> Result<Option<String>, VerifyTokenError> {
     let app_key: String = env::var("APP_KEY").expect("evn APP_KEY is not defined");
     let key: Hmac<Sha256> = Hmac::new_from_slice(app_key.as_bytes()).map_err(|_| VerifyTokenError)?;
 
     Ok(token
         .verify_with_key(&key)
-        .map(|_: HashMap<String, String>| true)
-        .unwrap_or(false))
+        .map(|m: HashMap<String, String>| Some(m["sub"].clone()))
+        .unwrap_or(None))
 }
 
 fn generate_token(user: User) -> Result<Token, GenerateTokenError> {
