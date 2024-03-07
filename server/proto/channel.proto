@@ -3,11 +3,16 @@ syntax = "proto3";
 package channel;
 
 message JoinRequest {
-    int32 id = 1;
+    string alias = 1;
+}
+
+message GameMove {
+    bool is_cross = 1;
+    int32 position = 2;
 }
 
 message Empty {}
 
 service Channel {
-    rpc JoinChannel (JoinRequest) returns (Empty);
+    rpc JoinQueue (JoinRequest) returns (stream GameMove);
 }

@@ -8,24 +8,18 @@ use tokio::sync::{mpsc, RwLock};
 use tokio_stream::{wrappers::ReceiverStream, Stream};
 use protos::lobby::{lobby_server::Lobby, AvailableChannels, ChannelState, Empty};
 
-use super::channel::{Channels, Channel};
-use crate::models::User;
+use super::channel::Channels;
 
 pub type Users = Arc<RwLock<HashMap<Uuid, mpsc::Sender<ChannelState>>>>;
 
 pub struct Service {
     users: Users,
     channels: Channels,
-    queue: Arc<RwLock<Option<User>>>,
 }
 
 impl Service {
     pub fn new(channels: Channels, users: Users) -> Self {
-        Self {
-            users,
-            channels,
-            queue: Arc::new(RwLock::new(None)),
-        }
+        Self { users, channels, }
     }
 }
 
@@ -38,13 +32,14 @@ impl Lobby for Service {
         Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
     }
 
-    type GetChannelStatesStream = ResponseStream<ChannelState>;
+    type GetChannelStatesStream = crate::ResponseStream<ChannelState>;
 
     async fn get_channel_states(&self, _r: Request<Empty>) -> LobbyResult<Self::GetChannelStatesStream> {
         let (stream_tx, stream_rx) = mpsc::channel(1);
-
-        let (tx, mut rx) = mpsc::channel(1);
+        let (tx, mut rx)           = mpsc::channel(1);
         let ident = Uuid::new_v4();
+
+        self.users.write().await.insert(ident, tx);
         let users_clone = self.users.clone();
 
         tokio::spawn(async move {

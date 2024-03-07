@@ -1,18 +1,16 @@
-use std::env;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::collections::HashMap;
 
-use diesel::{PgConnection, Connection};
-use dotenvy::dotenv;
 use protos::{
     lobby::lobby_server::LobbyServer,
 };
-use tonic::transport::Server;
 use tokio::sync::RwLock;
+use tokio_stream::Stream;
+use tonic::{Status, transport::Server};
 
 mod rpc;
-mod models;
-mod schema;
+pub type ResponseStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send>>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
