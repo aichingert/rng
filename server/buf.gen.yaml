@@ -7,8 +7,6 @@ plugins:
       - compile_well_known_types
       - extern_path=.google.protobuf=::pbjson_types
       - file_descriptor_set
-  - plugin: prost-serde
-    out: gen/src
   - plugin: tonic
     out: gen/src
     opt:

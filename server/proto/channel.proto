@@ -1,15 +1,12 @@
 syntax = "proto3";
 
-import "proto/auth.proto";
-
-message Token {
-    string access_token = 1;
-}
+package channel;
 
 message JoinRequest {
     int32 id = 1;
-    Token token = 2;
 }
+
+message Empty {}
 
 service Channel {
     rpc JoinChannel (JoinRequest) returns (Empty);
