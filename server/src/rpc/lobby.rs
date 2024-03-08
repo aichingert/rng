@@ -29,6 +29,8 @@ type ResponseStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send>>;
 #[tonic::async_trait]
 impl Lobby for Service {
     async fn get_available_channels(&self, _r: Request<Empty>) -> LobbyResult<AvailableChannels> {
+        println!("Mensch");
+        println!("{:?}", self.channels.read().await);
         Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
     }
 

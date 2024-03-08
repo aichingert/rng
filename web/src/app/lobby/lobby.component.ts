@@ -2,8 +2,6 @@ import {Component} from '@angular/core';
 import {LobbyService} from "../../shared/lobby.service";
 import {Router} from "@angular/router";
 import {MatButton} from "@angular/material/button";
-import {ChannelService} from "../../shared/channel.service";
-import {join} from "@angular/compiler-cli";
 import {FormsModule} from "@angular/forms";
 import {MatInput} from "@angular/material/input";
 
@@ -28,9 +26,7 @@ export class LobbyComponent {
 
   joinGame(_event: Event): void {
     if (this.alias.trim().length > 0) {
-      this.router.navigate(["game"]).catch(console.error);
+      this.router.navigate(["play"]).catch(console.error);
     }
   }
-
-  protected readonly join = join;
 }

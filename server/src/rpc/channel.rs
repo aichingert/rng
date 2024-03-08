@@ -11,6 +11,7 @@ use protos::channel::{channel_server::Channel, JoinRequest, GameMove, Empty};
 // TODO: change id type to uuid
 pub type Channels = Arc<RwLock<HashMap<i32, ChannelInfo>>>;
 
+#[derive(Debug)]
 pub struct ChannelInfo {
     current: usize,
     players: [(u8, mpsc::Sender<GameMove>); 2],
@@ -31,6 +32,16 @@ pub struct Service {
     queue: Arc<RwLock<Option<(String, mpsc::Sender<GameMove>)>>>,
 }
 
+impl Service {
+    pub fn new(channels: Channels) -> Self {
+        Self {
+            channels,
+            queue: Arc::new(RwLock::new(None)),
+            channel_id: Arc::new(RwLock::new(0)),
+        }
+    }
+}
+
 type ChannelResult<T> = Result<Response<T>, Status>;
 
 #[tonic::async_trait]
@@ -45,7 +56,9 @@ impl Channel for Service {
 
         if self.queue.read().await.is_some() {
             // TODO: figure out a way to store sessions
+            println!("{}", self.channels.read().await.len());
             let (_name, mpsc) = mem::replace(&mut *self.queue.write().await, None).unwrap();
+            println!("{}", self.channels.read().await.len());
             let players = [(0u8, mpsc), (1u8, tx)];
 
             /*
@@ -65,7 +78,7 @@ impl Channel for Service {
                 .insert(channel, ChannelInfo::new(players));
             *self.channel_id.write().await += 1;
         } else {
-            *this.queue.write().await = Some(alias, tx);
+            *self.queue.write().await = Some((alias, tx));
         }
 
         let channels_clone = self.channels.clone();

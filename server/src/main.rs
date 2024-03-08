@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use protos::{
     lobby::lobby_server::LobbyServer,
+    channel::channel_server::ChannelServer,
 };
 use tokio::sync::RwLock;
 use tokio_stream::Stream;
@@ -19,11 +20,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let channels: rpc::channel::Channels = Arc::new(RwLock::new(HashMap::new()));
     let users: rpc::lobby::Users = Arc::new(RwLock::new(HashMap::new()));
 
-    let lobby_service = rpc::lobby::Service::new(channels, users);
+    let lobby_service = rpc::lobby::Service::new(channels.clone(), users);
+    let channel_service = rpc::channel::Service::new(channels);
 
     Server::builder()
         .accept_http1(true)
         .add_service(tonic_web::enable(LobbyServer::new(lobby_service)))
+        .add_service(tonic_web::enable(ChannelServer::new(channel_service)))
         .serve(addr)
         .await?;
 
