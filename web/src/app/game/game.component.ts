@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import {LobbyService} from "../../shared/lobby.service";
+import {ChannelService} from "../../shared/channel.service";
+import {GameMove} from "../../shared/generated/channel";
 
 @Component({
   selector: 'app-game',
@@ -9,13 +10,11 @@ import {LobbyService} from "../../shared/lobby.service";
   styleUrl: './game.component.css'
 })
 export class GameComponent {
-  public messages: string[] = [];
-  public message: string = "";
+  public gameMoves: GameMove[] = [];
 
-  constructor(private lobbyService: LobbyService) {
-
-  }
-
-  public onKey(event: KeyboardEvent): void {
+  constructor(private channelService: ChannelService) {
+    this.channelService.getGameUpdates("").subscribe((gameMove) => {
+      this.gameMoves.push(gameMove);
+    })
   }
 }

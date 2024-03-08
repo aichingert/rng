@@ -4,19 +4,6 @@
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
 /**
- * @generated from protobuf message lobby.JoinRequest
- */
-export interface JoinRequest {
-    /**
-     * @generated from protobuf field: int32 channel = 1;
-     */
-    channel: number;
-    /**
-     * @generated from protobuf field: string username = 2;
-     */
-    username: string;
-}
-/**
  * @generated from protobuf message lobby.AvailableChannels
  */
 export interface AvailableChannels {
@@ -26,32 +13,23 @@ export interface AvailableChannels {
     ids: number[];
 }
 /**
- * @generated from protobuf message lobby.JoinResult
+ * @generated from protobuf message lobby.ChannelState
  */
-export interface JoinResult {
+export interface ChannelState {
     /**
-     * @generated from protobuf field: string status = 1;
+     * @generated from protobuf field: int32 id = 1;
      */
-    status: string;
+    id: number;
+    /**
+     * @generated from protobuf field: bool created = 2;
+     */
+    created: boolean;
 }
 /**
  * @generated from protobuf message lobby.Empty
  */
 export interface Empty {
 }
-// @generated message type with reflection information, may provide speed optimized methods
-class JoinRequest$Type extends MessageType<JoinRequest> {
-    constructor() {
-        super("lobby.JoinRequest", [
-            { no: 1, name: "channel", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 2, name: "username", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message lobby.JoinRequest
- */
-export const JoinRequest = new JoinRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AvailableChannels$Type extends MessageType<AvailableChannels> {
     constructor() {
@@ -65,17 +43,18 @@ class AvailableChannels$Type extends MessageType<AvailableChannels> {
  */
 export const AvailableChannels = new AvailableChannels$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class JoinResult$Type extends MessageType<JoinResult> {
+class ChannelState$Type extends MessageType<ChannelState> {
     constructor() {
-        super("lobby.JoinResult", [
-            { no: 1, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        super("lobby.ChannelState", [
+            { no: 1, name: "id", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 2, name: "created", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message lobby.JoinResult
+ * @generated MessageType for protobuf message lobby.ChannelState
  */
-export const JoinResult = new JoinResult$Type();
+export const ChannelState = new ChannelState$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Empty$Type extends MessageType<Empty> {
     constructor() {
@@ -90,5 +69,6 @@ export const Empty = new Empty$Type();
  * @generated ServiceType for protobuf service lobby.Lobby
  */
 export const Lobby = new ServiceType("lobby.Lobby", [
-    { name: "GetAvailableChannels", options: {}, I: Empty, O: AvailableChannels }
+    { name: "GetAvailableChannels", options: {}, I: Empty, O: AvailableChannels },
+    { name: "GetChannelStates", serverStreaming: true, options: {}, I: Empty, O: ChannelState }
 ]);

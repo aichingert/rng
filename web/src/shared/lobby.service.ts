@@ -1,24 +1,35 @@
 import { Injectable } from '@angular/core';
 import {GrpcWebFetchTransport} from "@protobuf-ts/grpcweb-transport";
-import {UnaryCall} from "@protobuf-ts/runtime-rpc";
 import {LobbyClient} from "./generated/lobby.client";
-import {AvailableChannels, Empty} from "./generated/lobby";
+import {AvailableChannels, ChannelState} from "./generated/lobby";
+import {Subject} from "rxjs";
 
 @Injectable({
   providedIn: 'root'
 })
 export class LobbyService {
   private client = new LobbyClient(new GrpcWebFetchTransport({baseUrl: "http://localhost:9800"}));
-  // TODO: make stream for new and deleted channels
-  // private channelStream: BehaviorSubject<Channels> = new BehaviorSubject<AvailableChannels>({ids: []});
+
+  private channelUpdates: Subject<ChannelState> = new Subject<ChannelState>();
 
   public channels: number[] = [];
 
   constructor() {
-    const call: UnaryCall<Empty, AvailableChannels> = this.client.getAvailableChannels({/*Empty*/});
+    this.client.getAvailableChannels({}).response
+      .then((available: AvailableChannels) => this.channels = available.ids)
+      .catch(console.error);
 
-    call.response.then((available: AvailableChannels) => {
-      this.channels = available.ids;
-    }).catch(console.error);
+    this.client.getChannelStates({}).responses
+      .onNext((cs: ChannelState | undefined) => {
+        if (!cs) {
+          return;
+        }
+
+        if (cs.created) {
+          this.channels.push(cs.id);
+        } else {
+          this.channels = this.channels.filter(e => e != cs.id);
+        }
+      });
   }
 }

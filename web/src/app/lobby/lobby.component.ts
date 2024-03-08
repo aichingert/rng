@@ -2,23 +2,35 @@ import {Component} from '@angular/core';
 import {LobbyService} from "../../shared/lobby.service";
 import {Router} from "@angular/router";
 import {MatButton} from "@angular/material/button";
+import {ChannelService} from "../../shared/channel.service";
+import {join} from "@angular/compiler-cli";
+import {FormsModule} from "@angular/forms";
+import {MatInput} from "@angular/material/input";
 
 @Component({
   selector: 'app-lobby',
   standalone: true,
   imports: [
-    MatButton
+    MatButton,
+    FormsModule,
+    MatInput
   ],
   templateUrl: './lobby.component.html',
   styleUrl: './lobby.component.css'
 })
 export class LobbyComponent {
+  public alias: string = "";
+
   constructor(
     private router: Router,
     public lobbyService: LobbyService,
   ) {}
 
-  onClick(_event: Event): void {
-
+  joinGame(_event: Event): void {
+    if (this.alias.trim().length > 0) {
+      this.router.navigate(["game"]).catch(console.error);
+    }
   }
+
+  protected readonly join = join;
 }

@@ -1,7 +1,8 @@
-<h1>This is a chat</h1>
-
-@for (msg of messages; track msg) {
-  <p>{{msg}}</p>
-}
-
-<input (keyup)="onKey($event)">
+<div style="display: flex; justify-content: center; padding: 10px">
+  @for (gameMove of gameMoves; track gameMove) {
+    <div>
+      <p>{{gameMove.isCross ? "X" : "O" }}</p>
+      <p>{{gameMove.position}}</p>
+    </div>
+  }
+</div>
