@@ -8,11 +8,13 @@ message JoinRequest {
 
 message GameMove {
     bool is_cross = 1;
-    int32 position = 2;
+    int32 channel = 2;
+    int32 position = 3;
 }
 
 message Empty {}
 
 service Channel {
     rpc JoinQueue (JoinRequest) returns (stream GameMove);
+    rpc SendMove  (GameMove) returns (Empty);
 }

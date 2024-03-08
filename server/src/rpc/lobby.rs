@@ -1,4 +1,3 @@
-use std::pin::Pin;
 use std::sync::Arc;
 use std::collections::HashMap;
 
@@ -9,6 +8,7 @@ use tokio_stream::{wrappers::ReceiverStream, Stream};
 use protos::lobby::{lobby_server::Lobby, AvailableChannels, ChannelState, Empty};
 
 use super::channel::Channels;
+use crate::{ServiceResult, ResponseStream};
 
 pub type Users = Arc<RwLock<HashMap<Uuid, mpsc::Sender<ChannelState>>>>;
 
@@ -23,20 +23,17 @@ impl Service {
     }
 }
 
-type LobbyResult<T> = Result<Response<T>, Status>;
-type ResponseStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send>>;
-
 #[tonic::async_trait]
 impl Lobby for Service {
-    async fn get_available_channels(&self, _r: Request<Empty>) -> LobbyResult<AvailableChannels> {
+    async fn get_available_channels(&self, _r: Request<Empty>) -> ServiceResult<AvailableChannels> {
         println!("Mensch");
         println!("{:?}", self.channels.read().await);
         Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
     }
 
-    type GetChannelStatesStream = crate::ResponseStream<ChannelState>;
+    type GetChannelStatesStream = ResponseStream<ChannelState>;
 
-    async fn get_channel_states(&self, _r: Request<Empty>) -> LobbyResult<Self::GetChannelStatesStream> {
+    async fn get_channel_states(&self, _r: Request<Empty>) -> ServiceResult<Self::GetChannelStatesStream> {
         let (stream_tx, stream_rx) = mpsc::channel(1);
         let (tx, mut rx)           = mpsc::channel(1);
         let ident = Uuid::new_v4();

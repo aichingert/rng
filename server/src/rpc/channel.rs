@@ -8,6 +8,8 @@ use tokio::sync::{mpsc, RwLock, RwLockReadGuard};
 use tokio_stream::{wrappers::ReceiverStream, Stream};
 use protos::channel::{channel_server::Channel, JoinRequest, GameMove, Empty};
 
+use crate::{ServiceResult, ResponseStream};
+
 // TODO: change id type to uuid
 pub type Channels = Arc<RwLock<HashMap<i32, ChannelInfo>>>;
 
@@ -22,6 +24,15 @@ impl ChannelInfo {
         Self {
             current: 0,
             players, 
+        }
+    }
+
+    async fn broadcast_move(&self, msg: GameMove) {
+        for i in 0..self.players.len() {
+            match self.players[i].1.send(msg.clone()).await {
+                Ok(_) => {},
+                Err(_) => eprintln!("ERROR: broadcast failed"),
+            }
         }
     }
 }
@@ -42,13 +53,22 @@ impl Service {
     }
 }
 
-type ChannelResult<T> = Result<Response<T>, Status>;
-
 #[tonic::async_trait]
 impl Channel for Service {
-    type JoinQueueStream = crate::ResponseStream<GameMove>;
+    async fn send_move(&self, req: Request<GameMove>) -> ServiceResult<Empty> {
+        let msg = req.into_inner();
 
-    async fn join_queue(&self, req: Request<JoinRequest>) -> ChannelResult<Self::JoinQueueStream> {
+        self.channels.read().await.get(&msg.channel)
+            .ok_or(Status::not_found("Channel: not found"))?
+            .broadcast_move(msg)
+            .await;
+
+        Ok(Response::new(Empty {}))
+    }
+
+    type JoinQueueStream = ResponseStream<GameMove>;
+
+    async fn join_queue(&self, req: Request<JoinRequest>) -> ServiceResult<Self::JoinQueueStream> {
         let alias = req.into_inner().alias;
         let (stream_tx, stream_rx) = mpsc::channel(1);
         let (tx, mut rx)           = mpsc::channel(1);
@@ -56,14 +76,17 @@ impl Channel for Service {
 
         if self.queue.read().await.is_some() {
             // TODO: figure out a way to store sessions
-            println!("{}", self.channels.read().await.len());
             let (_name, mpsc) = mem::replace(&mut *self.queue.write().await, None).unwrap();
-            println!("{}", self.channels.read().await.len());
             let players = [(0u8, mpsc), (1u8, tx)];
 
-            /*
             for i in 0..players.len() {
-                match players[i].1.send(GameMove { is_cross: false, position: i as i32 }).await {
+                let game = GameMove {
+                    channel,
+                    is_cross: false,
+                    position: i as i32,
+                };
+
+                match players[i].1.send(game).await {
                     Ok(_) => {},
                     Err(_) => {
                         eprintln!("ERROR: channel not created | SEND FAILED");
@@ -71,7 +94,6 @@ impl Channel for Service {
                     }
                 }
             }
-            */
 
             self.channels
                 .write().await

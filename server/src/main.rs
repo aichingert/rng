@@ -8,10 +8,12 @@ use protos::{
 };
 use tokio::sync::RwLock;
 use tokio_stream::Stream;
-use tonic::{Status, transport::Server};
+use tonic::{Status, Response, transport::Server};
 
 mod rpc;
+
 pub type ResponseStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send>>;
+pub type ServiceResult<T> = Result<Response<T>, Status>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
