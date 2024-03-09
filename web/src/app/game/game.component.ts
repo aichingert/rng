@@ -3,29 +3,34 @@ import {ChannelService} from "../../shared/channel.service";
 import {GameMove} from "../../shared/generated/channel";
 import {MatInput} from "@angular/material/input";
 import {FormsModule} from "@angular/forms";
+import {BoardComponent} from "../board/board.component";
+import {of} from "rxjs";
 
 @Component({
   selector: 'app-game',
   standalone: true,
   imports: [
     MatInput,
-    FormsModule
+    FormsModule,
+    BoardComponent
   ],
   templateUrl: './game.component.html',
   styleUrl: './game.component.css'
 })
 export class GameComponent {
-  public position: string = "";
-  public gameMoves: GameMove[] = [];
-
-
   constructor(private channelService: ChannelService) {
     this.channelService.getGameUpdates("").subscribe((gameMove) => {
-      this.gameMoves.push(gameMove);
+      const [x, y] = [gameMove.position % 3, Math.floor(gameMove.position / 3)];
+
+      let elem = document.getElementById(`${y} ${x}`);
+      if (!elem) return;
+      elem.innerText = "X";
     })
   }
 
-  onSubmit(_event: Event): void {
-    this.channelService.sendMove(parseInt(this.position));
+  makeMove(position: number): void {
+    this.channelService.sendMove(position);
   }
+
+  protected readonly of = of;
 }

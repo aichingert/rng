@@ -1,12 +1,11 @@
-<form #loginForm="ngForm" (ngSubmit)="onSubmit($event)">
-  <input matInput placeholder="position" [(ngModel)]="position" name="position" required>
-</form>
-
-<div style="display: flex; justify-content: center; padding: 10px">
-  @for (gameMove of gameMoves; track gameMove) {
-    <div>
-      <p>{{gameMove.isCross ? "X" : "O" }}</p>
-      <p>{{gameMove.position}}</p>
-    </div>
-  }
+<div style="display: flex; justify-content: center">
+  <div>
+    @for (i of [0, 1, 2]; track i) {
+      <div style="display: flex">
+        @for (j of [0, 1, 2]; track j) {
+          <app-board [index]="3 * i + j" (newMove)="makeMove($event)" style="margin-right: 20px"></app-board>
+        }
+      </div>
+    }
+  </div>
 </div>

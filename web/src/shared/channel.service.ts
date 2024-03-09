@@ -24,7 +24,7 @@ export class ChannelService {
       .onNext((move: GameMove | undefined) => {
         if (!move) return;
         if (this.channelId == -1) this.channelId = move.channel;
-        this.gameUpdate.next(move);
+        else this.gameUpdate.next(move);
       })
 
     return this.gameUpdate.asObservable();
