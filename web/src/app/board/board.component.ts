@@ -18,8 +18,7 @@ export class BoardComponent {
     }
 
     if (!event.target || (event.target as HTMLDivElement).id === "board") return;
-    const [y, x]= (event.target as HTMLDivElement).id.split(' ');
-    const position = 9 * this.index + 3 * parseInt(y) + parseInt(x);
-    this.newMove.next(position);
+    const [_, y, x]= (event.target as HTMLDivElement).id.split(' ');
+    this.newMove.next(9 * this.index + 3 * parseInt(y) + parseInt(x));
   }
 }

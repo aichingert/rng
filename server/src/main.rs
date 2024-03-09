@@ -11,6 +11,7 @@ use tokio_stream::Stream;
 use tonic::{Status, Response, transport::Server};
 
 mod rpc;
+mod game;
 
 pub type ResponseStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send>>;
 pub type ServiceResult<T> = Result<Response<T>, Status>;

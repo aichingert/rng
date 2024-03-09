@@ -1,19 +1,19 @@
-<div (click)="makeMove($event);" id="board" style="display: flex; justify-content: center; padding-top: 10%">
+<div (click)="makeMove($event);" id="board" style="display: flex; justify-content: center;">
   <div>
     <div style="display: flex; border-bottom: 1px solid aliceblue">
-      <div id="0 0" class="square" style="border-right: 1px solid aliceblue"></div>
-      <div id="0 1" class="square" style="border-right: 1px solid aliceblue"></div>
-      <div id="0 2" class="square"></div>
+      <div id="{{ index }} 0 0" class="square" style="border-right: 1px solid aliceblue"></div>
+      <div id="{{ index }} 0 1" class="square" style="border-right: 1px solid aliceblue"></div>
+      <div id="{{ index }} 0 2" class="square"></div>
     </div>
     <div style="display: flex; border-bottom: 1px solid aliceblue">
-      <div id="1 0" class="square" style="border-right: 1px solid aliceblue"></div>
-      <div id="1 1" class="square" style="border-right: 1px solid aliceblue"></div>
-      <div id="1 2" class="square"></div>
+      <div id="{{ index }} 1 0" class="square" style="border-right: 1px solid aliceblue"></div>
+      <div id="{{ index }} 1 1" class="square" style="border-right: 1px solid aliceblue"></div>
+      <div id="{{ index }} 1 2" class="square"></div>
     </div>
     <div style="display: flex">
-      <div id="2 0" class="square" style="border-right: 1px solid aliceblue"></div>
-      <div id="2 1" class="square" style="border-right: 1px solid aliceblue"></div>
-      <div id="2 2" class="square"></div>
+      <div id="{{ index }} 2 0" class="square" style="border-right: 1px solid aliceblue"></div>
+      <div id="{{ index }} 2 1" class="square" style="border-right: 1px solid aliceblue"></div>
+      <div id="{{ index }} 2 2" class="square"></div>
     </div>
   </div>
 </div>

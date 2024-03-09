@@ -2,9 +2,9 @@ use std::sync::Arc;
 use std::collections::HashMap;
 
 use uuid::Uuid;
-use tonic::{Request, Response, Status};
+use tonic::{Request, Response};
 use tokio::sync::{mpsc, RwLock};
-use tokio_stream::{wrappers::ReceiverStream, Stream};
+use tokio_stream::{wrappers::ReceiverStream};
 use protos::lobby::{lobby_server::Lobby, AvailableChannels, ChannelState, Empty};
 
 use super::channel::Channels;
@@ -26,8 +26,8 @@ impl Service {
 #[tonic::async_trait]
 impl Lobby for Service {
     async fn get_available_channels(&self, _r: Request<Empty>) -> ServiceResult<AvailableChannels> {
-        println!("Mensch");
-        println!("{:?}", self.channels.read().await);
+        // TODO: fix locks ? not sure sometimes the answer is delayed until one of
+        // the players disconnects and a channel gets removed
         Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
     }
 

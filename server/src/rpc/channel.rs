@@ -1,20 +1,22 @@
-use std::mem;
 use std::sync::Arc;
 use std::collections::HashMap;
 
-use uuid::Uuid;
 use tonic::{Request, Response, Status};
-use tokio::sync::{mpsc, RwLock, RwLockReadGuard};
-use tokio_stream::{wrappers::ReceiverStream, Stream};
+use tokio::sync::{mpsc, RwLock};
+use tokio_stream::{wrappers::ReceiverStream};
 use protos::channel::{channel_server::Channel, JoinRequest, GameMove, Empty};
 
-use crate::{ServiceResult, ResponseStream};
+use crate::{
+    game::Game, 
+    ServiceResult, 
+    ResponseStream
+};
 
 // TODO: change id type to uuid
 pub type Channels = Arc<RwLock<HashMap<i32, ChannelInfo>>>;
 
-#[derive(Debug)]
 pub struct ChannelInfo {
+    game: Game,
     current: usize,
     players: [(u8, mpsc::Sender<GameMove>); 2],
 }
@@ -22,8 +24,9 @@ pub struct ChannelInfo {
 impl ChannelInfo {
     pub fn new(players: [(u8, mpsc::Sender<GameMove>);2]) -> Self {
         Self {
-            current: 0,
             players, 
+            current: 0,
+            game: Game::new(),
         }
     }
 
@@ -76,17 +79,18 @@ impl Channel for Service {
 
         if self.queue.read().await.is_some() {
             // TODO: figure out a way to store sessions
-            let (_name, mpsc) = mem::replace(&mut *self.queue.write().await, None).unwrap();
+
+            let (_name, mpsc) = self.queue.write().await.take().unwrap();
             let players = [(0u8, mpsc), (1u8, tx)];
 
-            for i in 0..players.len() {
+            for (i, p) in players.iter().enumerate() {
                 let game = GameMove {
                     channel,
                     is_cross: false,
                     position: i as i32,
                 };
 
-                match players[i].1.send(game).await {
+                match p.1.send(game).await {
                     Ok(_) => {},
                     Err(_) => {
                         eprintln!("ERROR: channel not created | SEND FAILED");
