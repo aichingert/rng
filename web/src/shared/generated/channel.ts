@@ -21,7 +21,11 @@ export interface GameMove {
      */
     isCross: boolean;
     /**
-     * @generated from protobuf field: int32 position = 2;
+     * @generated from protobuf field: int32 channel = 2;
+     */
+    channel: number;
+    /**
+     * @generated from protobuf field: int32 position = 3;
      */
     position: number;
 }
@@ -47,7 +51,8 @@ class GameMove$Type extends MessageType<GameMove> {
     constructor() {
         super("channel.GameMove", [
             { no: 1, name: "is_cross", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "position", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 2, name: "channel", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "position", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
 }
@@ -69,5 +74,6 @@ export const Empty = new Empty$Type();
  * @generated ServiceType for protobuf service channel.Channel
  */
 export const Channel = new ServiceType("channel.Channel", [
-    { name: "JoinQueue", serverStreaming: true, options: {}, I: JoinRequest, O: GameMove }
+    { name: "JoinQueue", serverStreaming: true, options: {}, I: JoinRequest, O: GameMove },
+    { name: "SendMove", options: {}, I: GameMove, O: Empty }
 ]);

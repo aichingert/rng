@@ -1,3 +1,7 @@
+<form #loginForm="ngForm" (ngSubmit)="onSubmit($event)">
+  <input matInput placeholder="position" [(ngModel)]="position" name="position" required>
+</form>
+
 <div style="display: flex; justify-content: center; padding: 10px">
   @for (gameMove of gameMoves; track gameMove) {
     <div>

@@ -4,6 +4,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { Channel } from "./channel";
+import type { Empty } from "./channel";
+import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
 import type { GameMove } from "./channel";
 import type { JoinRequest } from "./channel";
@@ -17,6 +19,10 @@ export interface IChannelClient {
      * @generated from protobuf rpc: JoinQueue(channel.JoinRequest) returns (stream channel.GameMove);
      */
     joinQueue(input: JoinRequest, options?: RpcOptions): ServerStreamingCall<JoinRequest, GameMove>;
+    /**
+     * @generated from protobuf rpc: SendMove(channel.GameMove) returns (channel.Empty);
+     */
+    sendMove(input: GameMove, options?: RpcOptions): UnaryCall<GameMove, Empty>;
 }
 /**
  * @generated from protobuf service channel.Channel
@@ -33,5 +39,12 @@ export class ChannelClient implements IChannelClient, ServiceInfo {
     joinQueue(input: JoinRequest, options?: RpcOptions): ServerStreamingCall<JoinRequest, GameMove> {
         const method = this.methods[0], opt = this._transport.mergeOptions(options);
         return stackIntercept<JoinRequest, GameMove>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: SendMove(channel.GameMove) returns (channel.Empty);
+     */
+    sendMove(input: GameMove, options?: RpcOptions): UnaryCall<GameMove, Empty> {
+        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GameMove, Empty>("unary", this._transport, method, opt, input);
     }
 }
