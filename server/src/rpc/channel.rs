@@ -30,7 +30,9 @@ impl ChannelInfo {
         }
     }
 
-    async fn broadcast_move(&self, msg: GameMove) {
+    async fn broadcast_move(&mut self, msg: GameMove) {
+        self.current = 1 - self.current;
+
         for i in 0..self.players.len() {
             match self.players[i].1.send(msg.clone()).await {
                 Ok(_) => {},
@@ -61,8 +63,18 @@ impl Channel for Service {
     async fn send_move(&self, req: Request<GameMove>) -> ServiceResult<Empty> {
         let msg = req.into_inner();
 
-        self.channels.read().await.get(&msg.channel)
-            .ok_or(Status::not_found("Channel: not found"))?
+        let mut channel = self.channels.write().await;
+        let channel = channel.get_mut(&msg.channel).ok_or(Status::not_found("Channel: not found"))?;
+
+        if msg.is_cross && channel.current == 1 || !msg.is_cross && channel.current == 0 {
+            return Err(Status::cancelled("Error: not your turn"));
+        }
+
+        if let Err(err) = channel.game.set(msg.is_cross, msg.position) {
+            return Err(Status::cancelled(err));
+        }
+
+        channel
             .broadcast_move(msg)
             .await;
 

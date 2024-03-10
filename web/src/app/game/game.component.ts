@@ -3,6 +3,7 @@ import {ChannelService} from "../../shared/channel.service";
 import {MatInput} from "@angular/material/input";
 import {FormsModule} from "@angular/forms";
 import {BoardComponent} from "../board/board.component";
+import {NgStyle} from "@angular/common";
 
 @Component({
   selector: 'app-game',
@@ -10,7 +11,8 @@ import {BoardComponent} from "../board/board.component";
   imports: [
     MatInput,
     FormsModule,
-    BoardComponent
+    BoardComponent,
+    NgStyle
   ],
   templateUrl: './game.component.html',
   styleUrl: './game.component.css'
@@ -23,7 +25,7 @@ export class GameComponent {
 
       let elem = document.getElementById(`${z} ${y} ${x}`);
       if (!elem) return;
-      elem.innerText = "X";
+      elem.innerText = gameMove.isCross ? 'X' : 'O';
     })
   }
 

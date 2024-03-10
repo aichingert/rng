@@ -11,6 +11,7 @@ import {ServerStreamingCall} from "@protobuf-ts/runtime-rpc";
 export class ChannelService {
   private client = new ChannelClient(new GrpcWebFetchTransport({baseUrl: "http://localhost:9800"}));
   private channelId: number = -1;
+  private isCross: boolean = false;
 
   private gameUpdate = new Subject<GameMove>();
 
@@ -23,7 +24,10 @@ export class ChannelService {
     call.responses
       .onNext((move: GameMove | undefined) => {
         if (!move) return;
-        if (this.channelId == -1) this.channelId = move.channel;
+        if (this.channelId == -1) {
+          this.channelId = move.channel;
+          this.isCross = move.position === 0;
+        }
         else this.gameUpdate.next(move);
       })
 
@@ -38,7 +42,7 @@ export class ChannelService {
 
     const move: GameMove = {
       position,
-      isCross: false,
+      isCross: this.isCross,
       channel: this.channelId,
     };
 

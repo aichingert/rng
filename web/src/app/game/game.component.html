@@ -1,4 +1,4 @@
-<div style="display: flex; padding: 10px">
+<div style="display: flex; padding-top: 25px; justify-content: space-between;">
   <!--
   TODO: add names here when the server supports it as well
 
@@ -11,16 +11,18 @@
   test data is shown below but not properly placed on the page
   -->
 
-  <div style="justify-content: left; color: aliceblue">pha</div>
-  <div style="justify-content: right; color: aliceblue">veqox</div>
+  <span style="padding-left: 25%; color: aliceblue">pha</span>
+  <span style="padding-right: 25%; color: aliceblue">veqox</span>
 </div>
 
 <div style="display: flex; justify-content: center">
   <div>
     @for (i of [0, 1, 2]; track i) {
-      <div style="display: flex">
+      @if (i !== 0) { <div style="border-bottom: 1px solid aliceblue"></div> }
+      <div style="display: flex;">
         @for (j of [0, 1, 2]; track j) {
-          <app-board [index]="3 * i + j" (newMove)="makeMove($event)" style="margin: 25px"></app-board>
+          <app-board [index]="3 * i + j" (newMove)="makeMove($event)" style="margin: 25px;"></app-board>
+          @if (j !== 2) { <div style="border-right: 1px solid aliceblue"></div> }
         }
       </div>
     }
