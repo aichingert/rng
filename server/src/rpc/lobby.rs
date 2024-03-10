@@ -28,12 +28,16 @@ impl Lobby for Service {
     async fn get_available_channels(&self, _r: Request<Empty>) -> ServiceResult<AvailableChannels> {
         // TODO: fix locks ? not sure sometimes the answer is delayed until one of
         // the players disconnects and a channel gets removed
-        Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
+        println!("LOCKED");
+        let ids: Vec<i32> = self.channels.read().await.keys().cloned().collect();
+        println!("UNLOCKED");
+        Ok(Response::new(AvailableChannels { ids }))
     }
 
     type GetChannelStatesStream = ResponseStream<ChannelState>;
 
     async fn get_channel_states(&self, _r: Request<Empty>) -> ServiceResult<Self::GetChannelStatesStream> {
+        println!("LOCKING");
         let (stream_tx, stream_rx) = mpsc::channel(1);
         let (tx, mut rx)           = mpsc::channel(1);
         let ident = Uuid::new_v4();
@@ -53,6 +57,7 @@ impl Lobby for Service {
             }
         });
 
+        println!("UNLOCKING");
         Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
     }
 }

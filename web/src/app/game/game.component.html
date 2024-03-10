@@ -21,7 +21,7 @@
       @if (i !== 0) { <div style="border-bottom: 1px solid aliceblue"></div> }
       <div style="display: flex;">
         @for (j of [0, 1, 2]; track j) {
-          <app-board [index]="3 * i + j" (newMove)="makeMove($event)" style="margin: 25px;"></app-board>
+          <app-board [index]="3 * i + j" [color]="colors[3 * i + j]" (newMove)="makeMove($event)" style="margin: 25px;"></app-board>
           @if (j !== 2) { <div style="border-right: 1px solid aliceblue"></div> }
         }
       </div>

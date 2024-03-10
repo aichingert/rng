@@ -9,6 +9,7 @@ import {Component, EventEmitter, Input, Output} from '@angular/core';
 })
 export class BoardComponent {
   @Input() index: number | undefined = undefined;
+  @Input() color: string = "";
   @Output() newMove = new EventEmitter<number>;
 
   makeMove(event: Event): void {

@@ -29,8 +29,6 @@ impl Game {
 
         let last = self.last.unwrap_or(z);
 
-        println!("{last} - {loc} - {z}");
-
         if self.board.is_inner_board_playable(last) && last != z {
             return Err(format!("ERROR: next move has to be made in board {z}"));
         }

@@ -22,7 +22,6 @@ impl Board {
     }
 
     pub fn is_valid(&self, loc: i32) -> bool {
-        println!("{loc}");
         !(loc < 0 || loc >= self.fields.len() as i32)
     }
 
@@ -59,7 +58,6 @@ impl Board {
     }
     
     pub fn check_game_win(&self, state: FieldState) -> bool {
-        println!("{:?}", self.playable_boards);
         Self::check_board_win(0, state, &self.playable_boards)
     }
 
