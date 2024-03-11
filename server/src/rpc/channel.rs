@@ -61,7 +61,7 @@ impl Service {
 #[tonic::async_trait]
 impl Channel for Service {
     async fn send_move(&self, req: Request<GameMove>) -> ServiceResult<Empty> {
-        let msg = req.into_inner();
+        let mut msg = req.into_inner();
 
         let mut channel = self.channels.write().await;
         let channel = channel.get_mut(&msg.channel).ok_or(Status::not_found("Channel: not found"))?;
@@ -70,14 +70,12 @@ impl Channel for Service {
             return Err(Status::cancelled("Error: not your turn"));
         }
 
-        if let Err(err) = channel.game.set(msg.is_cross, msg.position) {
-            return Err(Status::cancelled(err));
+        match channel.game.set(msg.is_cross, msg.position) {
+            Ok(info_code) => msg.info_code = info_code,
+            Err(err_msg)  => return Err(Status::cancelled(err_msg)),
         }
 
-        channel
-            .broadcast_move(msg)
-            .await;
-
+        channel.broadcast_move(msg).await;
         Ok(Response::new(Empty {}))
     }
 
@@ -101,6 +99,7 @@ impl Channel for Service {
                     channel,
                     is_cross: false,
                     position: i as i32,
+                    info_code: 0,
                 };
 
                 match p.1.send(game).await {

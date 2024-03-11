@@ -27,6 +27,11 @@ export class GameComponent {
   constructor(private channelService: ChannelService) {
 
     this.channelService.getGameUpdates("").subscribe((gameMove) => {
+      if (gameMove.infoCode === 10) {
+        console.log("Someone won!");
+        return;
+      }
+
       const [p, z] = [gameMove.position % 9, Math.floor(gameMove.position / 9)];
       const [y, x] = [Math.floor(p / 3), p % 3];
 
@@ -34,10 +39,10 @@ export class GameComponent {
       if (!elem) return;
 
       for (let i: number = 0; i < 9; i++) {
-        if (i === 9) {
-          this.colors[i] = this.highlighted;
+        if (gameMove.infoCode == -1) {
+          this.colors[i] = this.normalColor;
         } else {
-          this.colors[i] = i == y ? this.highlighted : this.normalColor;
+          this.colors[i] = i == gameMove.infoCode ? this.highlighted : this.normalColor;
         }
       }
 

@@ -14,7 +14,7 @@ impl Game {
         }
     }
 
-    pub fn set(&mut self, is_cross: bool, position: i32) -> Result<(), String> {
+    pub fn set(&mut self, is_cross: bool, position: i32) -> Result<i32, String> {
         if !self.board.is_valid(position) {
             return Err("ERROR: position outside of bounds".to_string());
         }
@@ -43,17 +43,20 @@ impl Game {
             FieldState::Nought
         };
 
-        self.last = Some(3 * y + x);
+        let next = 3 * y + x;
+        self.last = Some(next);
         self.board[position as usize] = state;
 
         if self.board.check_inner_board_wins(z, state) {
             self.board.set_inner_board_result(z, state);
         }
 
-        if self.board.check_game_win(state) {
-            println!("Someone won");
-        }
+        let info_code = if self.board.check_game_win(state) {
+            10
+        } else if self.board.is_inner_board_playable(next) {
+            next as i32
+        } else { -1 };
 
-        Ok(())
+        Ok(info_code)
     }
 }

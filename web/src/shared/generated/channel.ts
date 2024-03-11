@@ -28,6 +28,10 @@ export interface GameMove {
      * @generated from protobuf field: int32 position = 3;
      */
     position: number;
+    /**
+     * @generated from protobuf field: int32 info_code = 4;
+     */
+    infoCode: number;
 }
 /**
  * @generated from protobuf message channel.Empty
@@ -52,7 +56,8 @@ class GameMove$Type extends MessageType<GameMove> {
         super("channel.GameMove", [
             { no: 1, name: "is_cross", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "channel", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 3, name: "position", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 3, name: "position", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "info_code", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
 }

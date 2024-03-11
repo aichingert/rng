@@ -44,6 +44,7 @@ export class ChannelService {
       position,
       isCross: this.isCross,
       channel: this.channelId,
+      infoCode: 0,
     };
 
     this.client.sendMove(move).response.catch(console.error);
