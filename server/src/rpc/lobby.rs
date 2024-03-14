@@ -26,12 +26,7 @@ impl Service {
 #[tonic::async_trait]
 impl Lobby for Service {
     async fn get_available_channels(&self, _r: Request<Empty>) -> ServiceResult<AvailableChannels> {
-        // TODO: fix locks ? not sure sometimes the answer is delayed until one of
-        // the players disconnects and a channel gets removed
-        println!("LOCKED");
-        let ids: Vec<i32> = self.channels.read().await.keys().cloned().collect();
-        println!("UNLOCKED");
-        Ok(Response::new(AvailableChannels { ids }))
+        Ok(Response::new(AvailableChannels { ids: self.channels.read().await.keys().cloned().collect() }))
     }
 
     type GetChannelStatesStream = ResponseStream<ChannelState>;
@@ -39,7 +34,7 @@ impl Lobby for Service {
     async fn get_channel_states(&self, _r: Request<Empty>) -> ServiceResult<Self::GetChannelStatesStream> {
         println!("LOCKING");
         let (stream_tx, stream_rx) = mpsc::channel(1);
-        let (tx, mut rx)           = mpsc::channel(1);
+        /*let (tx, mut rx)           = mpsc::channel(1);
         let ident = Uuid::new_v4();
 
         self.users.write().await.insert(ident, tx);
@@ -57,7 +52,8 @@ impl Lobby for Service {
             }
         });
 
-        println!("UNLOCKING");
+        */
+        println!("= UNLOCKING");
         Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
     }
 }

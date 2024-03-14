@@ -61,6 +61,7 @@ impl Service {
 #[tonic::async_trait]
 impl Channel for Service {
     async fn send_move(&self, req: Request<GameMove>) -> ServiceResult<Empty> {
+        println!("SEND");
         let mut msg = req.into_inner();
 
         let mut channel = self.channels.write().await;
@@ -76,6 +77,7 @@ impl Channel for Service {
         }
 
         channel.broadcast_move(msg).await;
+        println!("= SENT");
         Ok(Response::new(Empty {}))
     }
 
@@ -84,8 +86,10 @@ impl Channel for Service {
     async fn join_queue(&self, req: Request<JoinRequest>) -> ServiceResult<Self::JoinQueueStream> {
         println!("LOCKER");
         let alias = req.into_inner().alias;
-        let (stream_tx, stream_rx) = mpsc::channel(1);
-        let (tx, mut rx)           = mpsc::channel(1);
+
+        let (stream_tx, stream_rx) = mpsc::channel(100);
+        let (tx, mut rx)           = mpsc::channel(100);
+
         let channel = *self.channel_id.read().await;
 
         if self.queue.read().await.is_some() {
@@ -111,9 +115,11 @@ impl Channel for Service {
                 }
             }
 
-            self.channels
-                .write().await
-                .insert(channel, ChannelInfo::new(players));
+            {
+                self.channels
+                    .write().await
+                    .insert(channel, ChannelInfo::new(players));
+            }
             *self.channel_id.write().await += 1;
         } else {
             *self.queue.write().await = Some((alias, tx));
@@ -133,7 +139,7 @@ impl Channel for Service {
             }
         });
 
-        println!("UNLOCKER");
+        println!("= UNLOCKER");
         Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
     }
 }
