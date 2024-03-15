@@ -32,12 +32,15 @@ impl Lobby for Service {
     type GetChannelStatesStream = ResponseStream<ChannelState>;
 
     async fn get_channel_states(&self, _r: Request<Empty>) -> ServiceResult<Self::GetChannelStatesStream> {
-        println!("LOCKING");
-        let (stream_tx, stream_rx) = mpsc::channel(1);
-        /*let (tx, mut rx)           = mpsc::channel(1);
+        let (stream_tx, stream_rx) = mpsc::channel(128);
+        /*
+        let (tx, mut rx)           = mpsc::channel(128);
         let ident = Uuid::new_v4();
 
-        self.users.write().await.insert(ident, tx);
+        {
+            self.users.write().await.insert(ident, tx);
+        }
+
         let users_clone = self.users.clone();
 
         tokio::spawn(async move {
@@ -53,7 +56,6 @@ impl Lobby for Service {
         });
 
         */
-        println!("= UNLOCKING");
         Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
     }
 }

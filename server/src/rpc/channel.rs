@@ -18,11 +18,11 @@ pub type Channels = Arc<RwLock<HashMap<i32, ChannelInfo>>>;
 pub struct ChannelInfo {
     game: Game,
     current: usize,
-    players: [(u8, mpsc::Sender<GameMove>); 2],
+    players: [mpsc::Sender<GameMove>; 2],
 }
 
 impl ChannelInfo {
-    pub fn new(players: [(u8, mpsc::Sender<GameMove>);2]) -> Self {
+    pub fn new(players: [mpsc::Sender<GameMove>;2]) -> Self {
         Self {
             players, 
             current: 0,
@@ -34,7 +34,7 @@ impl ChannelInfo {
         self.current = 1 - self.current;
 
         for i in 0..self.players.len() {
-            match self.players[i].1.send(msg.clone()).await {
+            match self.players[i].send(msg.clone()).await {
                 Ok(_) => {},
                 Err(_) => eprintln!("ERROR: broadcast failed"),
             }
@@ -61,11 +61,10 @@ impl Service {
 #[tonic::async_trait]
 impl Channel for Service {
     async fn send_move(&self, req: Request<GameMove>) -> ServiceResult<Empty> {
-        println!("SEND");
         let mut msg = req.into_inner();
+        let mut channels = self.channels.write().await;
 
-        let mut channel = self.channels.write().await;
-        let channel = channel.get_mut(&msg.channel).ok_or(Status::not_found("Channel: not found"))?;
+        let channel = channels.get_mut(&msg.channel).ok_or(Status::not_found("Channel: not found"))?;
 
         if msg.is_cross && channel.current == 1 || !msg.is_cross && channel.current == 0 {
             return Err(Status::cancelled("Error: not your turn"));
@@ -76,19 +75,19 @@ impl Channel for Service {
             Err(err_msg)  => return Err(Status::cancelled(err_msg)),
         }
 
-        channel.broadcast_move(msg).await;
-        println!("= SENT");
+        {
+            channel.broadcast_move(msg).await;
+        }
         Ok(Response::new(Empty {}))
     }
 
     type JoinQueueStream = ResponseStream<GameMove>;
 
     async fn join_queue(&self, req: Request<JoinRequest>) -> ServiceResult<Self::JoinQueueStream> {
-        println!("LOCKER");
         let alias = req.into_inner().alias;
 
-        let (stream_tx, stream_rx) = mpsc::channel(100);
-        let (tx, mut rx)           = mpsc::channel(100);
+        let (stream_tx, stream_rx) = mpsc::channel(128);
+        let (tx, mut rx)           = mpsc::channel(128);
 
         let channel = *self.channel_id.read().await;
 
@@ -96,9 +95,9 @@ impl Channel for Service {
             // TODO: figure out a way to store sessions
 
             let (_name, mpsc) = self.queue.write().await.take().unwrap();
-            let players = [(0u8, mpsc), (1u8, tx)];
+            let players = [mpsc, tx];
 
-            for (i, p) in players.iter().enumerate() {
+            for (i, player) in players.iter().enumerate() {
                 let game = GameMove {
                     channel,
                     is_cross: false,
@@ -106,7 +105,7 @@ impl Channel for Service {
                     info_code: 0,
                 };
 
-                match p.1.send(game).await {
+                match player.send(game).await {
                     Ok(_) => {},
                     Err(_) => {
                         eprintln!("ERROR: channel not created | SEND FAILED");
@@ -119,10 +118,12 @@ impl Channel for Service {
                 self.channels
                     .write().await
                     .insert(channel, ChannelInfo::new(players));
+                *self.channel_id.write().await += 1;
             }
-            *self.channel_id.write().await += 1;
         } else {
-            *self.queue.write().await = Some((alias, tx));
+            {
+                *self.queue.write().await = Some((alias, tx));
+            }
         }
 
         let channels_clone = self.channels.clone();
@@ -139,7 +140,6 @@ impl Channel for Service {
             }
         });
 
-        println!("= UNLOCKER");
         Ok(Response::new(Box::pin(ReceiverStream::new(stream_rx))))
     }
 }

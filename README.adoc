@@ -44,3 +44,12 @@ This is still a wip and does not work yet
 ** channel
 *** has its a onw rpc service
 *** which handels spectators and players
+
+=== Deployment
+
+notes
+
+* nginx has grpc_pass (grpc://...)
+* set potential headers
+** maybe server sided streaming does not work
+* remove the port from the baseUrl in the grpcTransformOptions
