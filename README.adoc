@@ -1,11 +1,11 @@
-= Suptac
-Tobias Aichinger
+= titacto
 :toc: left
 :sectnums:
 :toclevels: 3
 :table-caption:
 :linkattrs:
 :experimental:
+aichingert
 
 This is an advanced implementation of tic-tac-toe which has some special rules.
 
@@ -16,6 +16,16 @@ This is an advanced implementation of tic-tac-toe which has some special rules.
 * the connections are tied to the previous move
 * the first move is freely choosable
 * after the first move the second player has to play in the board which has been marked by the first player
+
+== TODOS
+
+* Implement iced client for local applications, which dont depend on grpc-web
+* reduce dependencies
+* improve server and make board possible infinitly sized
+
+* let the web client there for now so I can look back on it for reference
+
+== Comments (old)
 
 == How to run
 
@@ -37,7 +47,7 @@ This is still a wip and does not work yet
 * Angular 17 works with protobuf-ts
 
 * server architecture
-** lobby 
+** lobby
 *** has amount of users
 *** has rpc method which sends channel informations (amount, new, deleted)
 
@@ -53,3 +63,4 @@ notes
 * set potential headers
 ** maybe server sided streaming does not work
 * remove the port from the baseUrl in the grpcTransformOptions
+
