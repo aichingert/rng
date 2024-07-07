@@ -12,8 +12,8 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.linkLibCpp();
-    exe.addIncludePath(b.path("proto/"));
-    exe.addCSourceFiles(.{ .root = b.path("proto/"), .files = &.{"proto.cpp"} });
+    exe.addIncludePath(b.path("cpp/"));
+    exe.addCSourceFiles(.{ .root = b.path("cpp/"), .files = &.{"proto.cpp"} });
 
     b.installArtifact(exe);
 

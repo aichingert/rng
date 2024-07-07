@@ -6,6 +6,9 @@ data/
 # Logs
 logs
 *zig-out
+*.capnp.cpp
+*.capnp.c++
+*.capnp.h
 *.zig-cache
 *.log
 npm-debug.log*
