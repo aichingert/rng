@@ -1,32 +1,59 @@
+const std = @import("std");
 const rl = @import("raylib");
 
+const rect = 40;
+const offset = 200;
+
 pub fn main() anyerror!void {
-    // Initialization
-    //--------------------------------------------------------------------------------------
     const screenWidth = 800;
-    const screenHeight = 450;
+    const screenHeight = 600;
+
+    const start = offset;
+    const end = screenWidth - offset - rect;
+
+    const range = (end - start) / 8;
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
-    defer rl.closeWindow(); // Close window and OpenGL context
+    defer rl.closeWindow();
 
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+    rl.setTargetFPS(60);
 
-    // Main game loop
-    while (!rl.windowShouldClose()) { // Detect window close button or ESC key
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+    var colors: [81]rl.Color = undefined;
+    colors = [_]rl.Color{rl.Color.light_gray} ** 81;
 
-        // Draw
-        //----------------------------------------------------------------------------------
+    while (!rl.windowShouldClose()) {
+        if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
+            const y = @divFloor(rl.getMouseY() - range, range);
+            const x = @divFloor(rl.getMouseX() - offset, range);
+
+            if (x >= 0 and x < 9 and y * 9 + x >= 0) {
+                const idx = @as(usize, @intCast(y * 9 + x));
+
+                if (idx < 81) {
+                    colors[idx] = rl.Color.gray;
+                }
+            }
+        }
+
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.white);
 
-        rl.drawText("Congrats! You created your first window!", 190, 200, 20, rl.Color.light_gray);
-        //----------------------------------------------------------------------------------
+        for (0..9) |x| {
+            const dx = @as(i32, @intCast(x));
+
+            for (1..10) |y| {
+                const dy = @as(i32, @intCast(y));
+
+                rl.drawRectangle(
+                    start + range * dx,
+                    range * dy,
+                    rect,
+                    rect,
+                    colors[(y - 1) * 9 + x],
+                );
+            }
+        }
     }
 }
