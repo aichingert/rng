@@ -20,5 +20,8 @@ public:
 extern "C" void initServer(const char* address) {
     capnp::EzRpcServer server(kj::heap<HelloService>(), address);
     auto& waitScope = server.getWaitScope();
+
+    std::cout << "server is running on: `" << address << "`" << std::endl;
+
     kj::NEVER_DONE.wait(waitScope);
 }
