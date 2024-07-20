@@ -12,7 +12,7 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
-    capnp::EzRpcClient client(argv[1], 5923);
+    capnp::EzRpcClient client(argv[1], 8123);
     auto& waitScope = client.getWaitScope();
 
     Hello::Client cap = client.getMain<Hello>();

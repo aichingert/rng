@@ -12,8 +12,13 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.linkLibCpp();
-    exe.addIncludePath(b.path("cpp/"));
-    exe.addCSourceFiles(.{ .root = b.path("cpp/"), .files = &.{"proto.cpp"} });
+    exe.linkSystemLibrary("capnp-rpc");
+
+    exe.addIncludePath(b.path("rpc/"));
+    exe.addCSourceFiles(.{
+        .root = b.path("rpc/"),
+        .files = &.{ "rpc.cpp", "hello.capnp.cpp" },
+    });
 
     b.installArtifact(exe);
 
