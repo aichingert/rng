@@ -1,12 +1,13 @@
 const std = @import("std");
+const game = @import("game.zig");
 const rpc = @cImport({
     @cInclude("rpc.h");
 });
 
-export fn add(a: u32, b: u32) u32 {
-    return a + b;
-}
-
 pub fn main() !void {
+    const instance = game.Game{ .board = game.Board.new(false) };
+
+    std.debug.print("{?}", .{instance});
+
     rpc.initServer("localhost:8123");
 }

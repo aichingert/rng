@@ -5,14 +5,10 @@
 
 #include "hello.capnp.h"
 
-extern "C" uint32_t add(uint32_t a, uint32_t b);
-
 class HelloService final : public Hello::Server {
 public:
     kj::Promise<void> sayHello(SayHelloContext context) override {
-        std::cout << add(1, 2) << std::endl;
         std::cout << "Client says: " << context.getParams().getMsg().cStr() << std::endl;
-
         return kj::READY_NOW;
     }
 };
