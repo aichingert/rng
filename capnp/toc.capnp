@@ -7,14 +7,7 @@ struct Player {
 
 struct Game {
     players @0 :List(Player);
-    board @1 :Board;
-}
-
-struct Board {
-    union {
-        fields @1 :List(UInt16);
-        nested @2 :List(Board);
-    }
+    board @1 :List(UInt16);
 }
 
 interface Lobby {

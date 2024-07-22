@@ -1,33 +1,22 @@
+const std = @import("std");
+
+const board_size = 3;
+const size = board_size * board_size;
+
 pub const Game = struct {
-    board: Board,
-};
+    board: [size]u16,
 
-pub const Board = struct {
-    pub const Tag = enum {
-        leaf,
-        root,
-    };
+    // 1 2 4
+    // 81632
 
-    board: union(Tag) {
-        leaf: [9]u16,
-        root: [9]*const Board,
-    },
+    pub fn new() Game {
+        return Game{ .board = [_]u16{0} ** size };
+    }
 
-    pub fn new(isLeaf: bool) Board {
-        if (isLeaf) {
-            return Board{ .board = .{ .leaf = [9]u16{ 0, 0, 0, 0, 0, 0, 0, 0, 0 } } };
-        }
+    pub fn set(self: *Game, z: i32, y: i32, x: i32) bool {
+        std.debug.print("{} \n", .{z * size + y * board_size + x});
 
-        return Board{ .board = .{ .root = [9]*const Board{
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-            &Board.new(true),
-        } } };
+        _ = self;
+        return false;
     }
 };

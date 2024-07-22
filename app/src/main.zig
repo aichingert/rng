@@ -13,7 +13,7 @@ pub fn main() anyerror!void {
 
     const range = (end - start) / 8;
 
-    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
+    rl.initWindow(screenWidth, screenHeight, "toc");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
@@ -27,7 +27,13 @@ pub fn main() anyerror!void {
             const x = @divFloor(rl.getMouseX() - offset, range);
 
             if (x >= 0 and x < 9 and y * 9 + x >= 0) {
-                const idx = @as(usize, @intCast(y * 9 + x));
+                const dz = @divFloor(x, 3) + @divFloor(y, 3) * 3;
+                const dx = @rem(x, 3);
+                const dy = @rem(y, 3);
+
+                //const idx = @as(usize, @intCast(y * 9 + x));
+                const idx = @as(usize, @intCast(dz * 9 + dy * 3 + dx));
+                std.debug.print("{} | {} {} => {}\n", .{ dz, dy, dx, idx });
 
                 if (idx < 81) {
                     colors[idx] = rl.Color.gray;

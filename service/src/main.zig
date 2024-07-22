@@ -5,9 +5,10 @@ const rpc = @cImport({
 });
 
 pub fn main() !void {
-    const instance = game.Game{ .board = game.Board.new(false) };
+    var instance = game.Game.new();
+    _ = instance.set(5, 1, 2);
 
-    std.debug.print("{?}", .{instance});
+    std.debug.print("{?}\n", .{instance});
 
     rpc.initServer("localhost:8123");
 }
