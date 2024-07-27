@@ -1,10 +1,15 @@
 const std = @import("std");
+const Thread = std.Thread;
 const rl = @import("raylib");
+const net = @import("network.zig");
 
 const rect = 40;
 const offset = 200;
 
 pub fn main() anyerror!void {
+    const handle = try Thread.spawn(.{}, net.init, .{});
+    defer handle.detach();
+
     const screenWidth = 800;
     const screenHeight = 600;
 

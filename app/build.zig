@@ -11,6 +11,28 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const mongoose = b.dependency("mongoose", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const lib = b.addStaticLibrary(.{
+        .name = "mongoose",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    lib.addIncludePath(mongoose.path("."));
+    lib.addCSourceFiles(.{
+        .root = .{ .dependency = .{
+            .dependency = mongoose,
+            .sub_path = "",
+        } },
+        .files = &.{"mongoose.c"},
+    });
+    lib.linkLibC();
+    lib.installHeader(mongoose.path("mongoose.h"), "mongoose.h");
+    exe.linkLibrary(lib);
+
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
         .optimize = optimize,
