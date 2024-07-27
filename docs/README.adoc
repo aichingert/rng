@@ -1,4 +1,4 @@
-= titacto
+= toc
 :toc: left
 :sectnums:
 :toclevels: 3

@@ -4,13 +4,10 @@ const board_size = 3;
 const size = board_size * board_size;
 
 pub const Game = struct {
-    board: [size]u16,
-
-    // 1 2 4
-    // 81632
+    board: u128,
 
     pub fn new() Game {
-        return Game{ .board = [_]u16{0} ** size };
+        return Game{ .board = 0 };
     }
 
     pub fn set(self: *Game, z: i32, y: i32, x: i32) bool {

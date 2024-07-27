@@ -2,25 +2,15 @@ name: build and archive
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-
-      - name: install dependencies
-        run: |
-          sudo apt-get install curl gcc make
-          curl -O https://capnproto.org/capnproto-c++-1.0.2.tar.gz
-          tar zxf capnproto-c++-1.0.2.tar.gz
-          cd capnproto-c++-1.0.2
-          ./configure
-          make -j6 check
-          sudo make install
       - name: set up zig
-        uses: mlugg/setup-zig@v1 
+        uses: mlugg/setup-zig@v1
         with:
           version: 0.13.0
       - run: |
@@ -34,6 +24,6 @@ jobs:
         with:
           name: app
           path: app/zig-out/bin/app.exe
-            
+
           if-no-files-found: warn
           overwrite: true

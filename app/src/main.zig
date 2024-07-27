@@ -18,8 +18,7 @@ pub fn main() anyerror!void {
 
     rl.setTargetFPS(60);
 
-    var colors: [81]rl.Color = undefined;
-    colors = [_]rl.Color{rl.Color.light_gray} ** 81;
+    var colors: [81]rl.Color = [_]rl.Color{rl.Color.light_gray} ** 81;
 
     while (!rl.windowShouldClose()) {
         if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {

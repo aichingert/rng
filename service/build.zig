@@ -11,14 +11,27 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.linkLibCpp();
-    exe.linkSystemLibrary("capnp-rpc");
-
-    exe.addIncludePath(b.path("rpc/"));
-    exe.addCSourceFiles(.{
-        .root = b.path("rpc/"),
-        .files = &.{ "rpc.cpp", "hello.capnp.cpp" },
+    const mongoose = b.dependency("mongoose", .{
+        .target = target,
+        .optimize = optimize,
     });
+    const lib = b.addStaticLibrary(.{
+        .name = "mongoose",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    lib.addIncludePath(mongoose.path("."));
+    lib.addCSourceFiles(.{
+        .root = .{ .dependency = .{
+            .dependency = mongoose,
+            .sub_path = "",
+        } },
+        .files = &.{"mongoose.c"},
+    });
+    lib.linkLibC();
+    lib.installHeader(mongoose.path("mongoose.h"), "mongoose.h");
+    exe.linkLibrary(lib);
 
     b.installArtifact(exe);
 

@@ -1,14 +1,15 @@
 const std = @import("std");
 const game = @import("game.zig");
-const rpc = @cImport({
-    @cInclude("rpc.h");
+const mg = @cImport({
+    @cInclude("mongoose.h");
 });
 
 pub fn main() !void {
     var instance = game.Game.new();
     _ = instance.set(5, 1, 2);
 
-    std.debug.print("{?}\n", .{instance});
+    var mgr = mg.mg_mgr{};
+    mg.mg_mgr_init(&mgr);
 
-    rpc.initServer("localhost:8123");
+    std.debug.print("{?} {?}\n", .{ instance, mgr });
 }
