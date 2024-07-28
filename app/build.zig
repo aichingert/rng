@@ -20,6 +20,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    if (target.result.os.tag == .windows) {
+        lib.linkSystemLibrary("ws2_32");
+    }
 
     lib.addIncludePath(mongoose.path("."));
     lib.addCSourceFiles(.{
@@ -28,6 +31,7 @@ pub fn build(b: *std.Build) void {
             .sub_path = "",
         } },
         .files = &.{"mongoose.c"},
+        .flags = &.{},
     });
     lib.linkLibC();
     lib.installHeader(mongoose.path("mongoose.h"), "mongoose.h");
@@ -39,13 +43,10 @@ pub fn build(b: *std.Build) void {
     });
 
     const raylib = raylib_dep.module("raylib"); // main raylib module
-    const raygui = raylib_dep.module("raygui"); // raygui module
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
 
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
-    exe.root_module.addImport("raygui", raygui);
-
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
