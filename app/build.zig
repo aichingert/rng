@@ -47,6 +47,10 @@ pub fn build(b: *std.Build) void {
 
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
+
+    const libprotocol = b.dependency("protocol", .{});
+    exe.root_module.addImport("decoder", libprotocol.module("decoder"));
+
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);

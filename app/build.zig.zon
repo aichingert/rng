@@ -11,10 +11,14 @@
             .url = "https://github.com/cesanta/mongoose/archive/refs/tags/7.14.tar.gz",
             .hash = "12206486fc88d671a9cfb4daef7729ff0036cd301ce615ce49e3ad502277f98f53a6",
         },
+        .protocol = .{
+            .path = "../protocol",
+        },
     },
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
+        "",
     },
 }

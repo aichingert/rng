@@ -3,10 +3,14 @@ const Thread = std.Thread;
 const rl = @import("raylib");
 const net = @import("network.zig");
 
+const decoder = @import("decoder");
+
 const rect = 40;
 const offset = 200;
 
 pub fn main() anyerror!void {
+    decoder.hello();
+
     const handle = try Thread.spawn(.{}, net.init, .{});
     defer handle.detach();
 
@@ -31,15 +35,10 @@ pub fn main() anyerror!void {
             const x = @divFloor(rl.getMouseX() - offset, range);
 
             if (x >= 0 and x < 9 and y * 9 + x >= 0) {
-                const dz = @divFloor(x, 3) + @divFloor(y, 3) * 3;
-                const dx = @rem(x, 3);
-                const dy = @rem(y, 3);
-
-                //const idx = @as(usize, @intCast(y * 9 + x));
-                const idx = @as(usize, @intCast(dz * 9 + dy * 3 + dx));
-                std.debug.print("{} | {} {} => {}\n", .{ dz, dy, dx, idx });
+                const idx = @as(usize, @intCast(y * 9 + x));
 
                 if (idx < 81) {
+                    net.tasks.setPosition(@as(i32, @intCast(idx)));
                     colors[idx] = rl.Color.gray;
                 }
             }

@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
-        .name = "service",
+        .name = "server",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
@@ -32,6 +32,9 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     lib.installHeader(mongoose.path("mongoose.h"), "mongoose.h");
     exe.linkLibrary(lib);
+
+    const libprotocol = b.dependency("protocol", .{});
+    exe.root_module.addImport("packets", libprotocol.module("packets"));
 
     b.installArtifact(exe);
 
