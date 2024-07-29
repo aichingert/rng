@@ -8,7 +8,7 @@ const mg = @cImport({
     @cInclude("mongoose.h");
 });
 
-const server = "ws://localhost:8000/websocket";
+const server = "ws://pattern.nitoa.at/websocket";
 
 pub var tasks = Tasks.init();
 pub var colors: [81]rl.Color = [_]rl.Color{rl.Color.light_gray} ** 81;
