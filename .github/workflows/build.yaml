@@ -14,7 +14,7 @@ jobs:
         with:
           version: 0.13.0
       - run: |
-          cd service
+          cd server
           zig build
       - run: |
           cd app

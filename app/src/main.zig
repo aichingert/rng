@@ -2,7 +2,6 @@ const std = @import("std");
 const Thread = std.Thread;
 const rl = @import("raylib");
 const net = @import("network.zig");
-
 const decoder = @import("decoder");
 
 const rect = 40;
@@ -27,8 +26,6 @@ pub fn main() anyerror!void {
 
     rl.setTargetFPS(60);
 
-    var colors: [81]rl.Color = [_]rl.Color{rl.Color.light_gray} ** 81;
-
     while (!rl.windowShouldClose()) {
         if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const y = @divFloor(rl.getMouseY() - range, range);
@@ -39,7 +36,6 @@ pub fn main() anyerror!void {
 
                 if (idx < 81) {
                     net.tasks.setPosition(@as(i32, @intCast(idx)));
-                    colors[idx] = rl.Color.gray;
                 }
             }
         }
@@ -60,7 +56,7 @@ pub fn main() anyerror!void {
                     range * dy,
                     rect,
                     rect,
-                    colors[(y - 1) * 9 + x],
+                    net.colors[(y - 1) * 9 + x],
                 );
             }
         }

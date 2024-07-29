@@ -50,6 +50,7 @@ pub fn build(b: *std.Build) void {
 
     const libprotocol = b.dependency("protocol", .{});
     exe.root_module.addImport("decoder", libprotocol.module("decoder"));
+    exe.root_module.addImport("packets", libprotocol.module("packets"));
 
     b.installArtifact(exe);
 

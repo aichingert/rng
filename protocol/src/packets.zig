@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const allocator = std.heap.page_allocator;
+
 pub const Set = struct {
     idx: i32,
 
@@ -11,12 +13,10 @@ pub const Set = struct {
     }
 
     pub fn encode(self: *const Self) []const u8 {
-        var buf: [20]u8 = undefined;
-        const str: []const u8 = std.fmt.bufPrint(&buf, "set: {}", .{self.idx}) catch {
+        const str: []const u8 = std.fmt.allocPrint(allocator, "set: {}", .{self.idx}) catch {
             return "none";
         };
 
-        std.debug.print("{s}\n", .{str});
         return str;
     }
 };

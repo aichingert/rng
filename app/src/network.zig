@@ -1,4 +1,6 @@
 const std = @import("std");
+const rl = @import("raylib");
+const packets = @import("packets");
 const Thread = std.Thread;
 const Mutex = Thread.Mutex;
 
@@ -9,6 +11,7 @@ const mg = @cImport({
 const server = "ws://localhost:8000/websocket";
 
 pub var tasks = Tasks.init();
+pub var colors: [81]rl.Color = [_]rl.Color{rl.Color.light_gray} ** 81;
 
 pub const Tasks = struct {
     mutex: Mutex,
@@ -45,24 +48,25 @@ fn event_handler(
     event: c_int,
     event_data: ?*anyopaque,
 ) callconv(.C) void {
-    if (event == mg.MG_EV_WS_OPEN) {
-        _ = mg.mg_ws_send(c, "connected", 9, mg.WEBSOCKET_OP_TEXT);
-    }
+    // TODO: check that ws connection was successful if (event == mg.MG_EV_WS_OPEN) {
 
     if (event == mg.MG_EV_WS_MSG) {
         if (event_data) |data| {
-            const ws = @as(*mg.mg_ws_message, @ptrCast(@alignCast(data)));
-            std.debug.print("{s}\n", .{ws.data.buf});
+            const wm = @as(*mg.mg_ws_message, @ptrCast(@alignCast(data)));
+
+            if (std.fmt.parseInt(usize, std.mem.span(wm.data.buf[5..]), 10)) |idx| {
+                colors[idx] = rl.Color.gray;
+            } else |err| {
+                std.debug.print("{?}\n", .{err});
+            }
         }
     }
 
     const position = tasks.getPosition();
 
     if (position != -1) {
-        var buf: [2]u8 = undefined;
-        const str = std.fmt.bufPrint(&buf, "{}", .{position}) catch {
-            return;
-        };
+        const str = (packets.Set{ .idx = position }).encode();
+
         _ = mg.mg_ws_send(
             c,
             @as(?*const anyopaque, @ptrCast(str)),
