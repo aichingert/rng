@@ -15,10 +15,10 @@ jobs:
           version: 0.13.0
       - run: |
           cd server
-          zig build
+          zig build -Dtarget=x86_64-windows-gnu
       - run: |
           cd app
-          zig build -Dtarget=x86_64-windows-gnu
+          zig build -Dtarget=x86_64-windows-gnu -Doptimize=ReleaseSafe
       - name: Archive upload
         uses: actions/upload-artifact@v4
         with:

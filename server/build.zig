@@ -11,30 +11,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const mongoose = b.dependency("mongoose", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const lib = b.addStaticLibrary(.{
-        .name = "mongoose",
-        .target = target,
-        .optimize = optimize,
-    });
-
-    lib.addIncludePath(mongoose.path("."));
-    lib.addCSourceFiles(.{
-        .root = .{ .dependency = .{
-            .dependency = mongoose,
-            .sub_path = "",
-        } },
-        .files = &.{"mongoose.c"},
-    });
-    lib.linkLibC();
-    lib.installHeader(mongoose.path("mongoose.h"), "mongoose.h");
-    exe.linkLibrary(lib);
-
     const libprotocol = b.dependency("protocol", .{});
     exe.root_module.addImport("packets", libprotocol.module("packets"));
+    exe.root_module.addImport("mongoose", libprotocol.module("mongoose"));
 
     b.installArtifact(exe);
 

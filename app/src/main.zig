@@ -2,14 +2,13 @@ const std = @import("std");
 const Thread = std.Thread;
 const rl = @import("raylib");
 const net = @import("network.zig");
-const decoder = @import("decoder");
 
 const rect = 40;
 const offset = 200;
 
-pub fn main() anyerror!void {
-    decoder.hello();
+const background = rl.Color{ .r = 29, .b = 32, .g = 33, .a = 255 };
 
+pub fn main() anyerror!void {
     const handle = try Thread.spawn(.{}, net.init, .{});
     defer handle.detach();
 
@@ -43,7 +42,7 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(rl.Color.white);
+        rl.clearBackground(background);
 
         for (0..9) |x| {
             const dx = @as(i32, @intCast(x));
