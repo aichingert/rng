@@ -15,7 +15,7 @@ jobs:
           version: 0.13.0
       - run: |
           cd server
-          zig build -Dtarget=x86_64-windows-gnu
+          zig build
       - run: |
           cd app
           zig build -Dtarget=x86_64-windows-gnu -Doptimize=ReleaseSafe

@@ -1,8 +1,7 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    // FIXME: I should not need to hardcode the target?
-    const target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows });
+    const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
     const packets_mod = b.addModule("packets", .{

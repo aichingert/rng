@@ -21,7 +21,10 @@ pub fn build(b: *std.Build) void {
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
 
-    const libprotocol = b.dependency("protocol", .{});
+    const libprotocol = b.dependency("protocol", .{
+        .target = target,
+        .optimize = optimize,
+    });
     exe.root_module.addImport("packets", libprotocol.module("packets"));
     exe.root_module.addImport("mongoose", libprotocol.module("mongoose"));
 

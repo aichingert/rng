@@ -11,7 +11,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const libprotocol = b.dependency("protocol", .{});
+    const libprotocol = b.dependency("protocol", .{
+        .target = target,
+        .optimize = optimize,
+    });
     exe.root_module.addImport("packets", libprotocol.module("packets"));
     exe.root_module.addImport("mongoose", libprotocol.module("mongoose"));
 
