@@ -6,8 +6,10 @@ const net = @import("network.zig");
 const rect = 40;
 const offset = 200;
 
-const background = rl.Color{ .r = 29, .b = 32, .g = 33, .a = 255 };
+const screenWidth = 800;
+const screenHeight = 600;
 
+const background = rl.Color{ .r = 29, .b = 32, .g = 33, .a = 255 };
 const maxNameLen = 6;
 
 const GameScreen = enum {
@@ -16,12 +18,15 @@ const GameScreen = enum {
     game,
 };
 
+var frameCount: u32 = 0;
+
+var input: [maxNameLen:0]u8 = undefined;
+var index: usize = 0;
+var screen = GameScreen.login;
+
 pub fn main() anyerror!void {
     //const handle = try Thread.spawn(.{}, net.init, .{});
     //defer handle.detach();
-
-    const screenWidth = 800;
-    const screenHeight = 600;
 
     const start = offset;
     const end = screenWidth - offset - rect;
@@ -31,12 +36,6 @@ pub fn main() anyerror!void {
     rl.initWindow(screenWidth, screenHeight, "toc");
     defer rl.closeWindow();
     rl.setTargetFPS(60);
-
-    //const textBox = rl.Rectangle{ };
-
-    var input: [maxNameLen:0]u8 = undefined;
-    var index: usize = 0;
-    const screen = GameScreen.login;
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -74,29 +73,42 @@ pub fn main() anyerror!void {
                     }
                 }
             },
-            .login => {
-                rl.setMouseCursor(@intFromEnum(rl.MouseCursor.mouse_cursor_ibeam));
-
-                var key: c_int = rl.getCharPressed();
-
-                while (key > 0) {
-                    if ((key >= 32) and (key <= 125) and (index <= maxNameLen)) {
-                        input[index] = @as(u8, @intCast(key));
-                        index = index + 1;
-                    }
-
-                    key = rl.getCharPressed();
-                }
-
-                if (rl.isKeyPressed(rl.KeyboardKey.key_backspace)) {
-                    if (index > 0) {
-                        index = index - 1;
-                    }
-                }
-
-                rl.drawText(@as([*:0]const u8, @ptrCast(@alignCast(&input))), screenWidth / 2 - 100 + 5, 180 + 8, 40, rl.Color.orange);
-            },
+            .login => login(),
             .lobby => {},
         }
     }
+}
+
+fn login() void {
+    frameCount = (frameCount + 1) % 100_000_000 + 1;
+    rl.setMouseCursor(@intFromEnum(rl.MouseCursor.mouse_cursor_ibeam));
+    var key: c_int = rl.getCharPressed();
+
+    if (rl.isKeyPressed(rl.KeyboardKey.key_backspace)) {
+        if (index > 0) {
+            index = index - 1;
+            input[index] = 0;
+        }
+        return;
+    }
+    if (rl.isKeyPressed(rl.KeyboardKey.key_enter)) {
+        screen = GameScreen.game;
+    }
+
+    while (key > 0) {
+        if ((key >= 32) and (key <= 125) and (index < maxNameLen)) {
+            input[index] = @as(u8, @intCast(key));
+            index = index + 1;
+        }
+
+        key = rl.getCharPressed();
+    }
+
+    const text = @as([*:0]const u8, @ptrCast(@alignCast(&input)));
+
+    if (index < maxNameLen and ((@divFloor(frameCount, 20)) % 4) == 0) {
+        rl.drawText("_", screenWidth / 2 - 100 + 8 + rl.measureText(text, 40), 180 + 12, 40, rl.Color.orange);
+    }
+
+    rl.drawText(text, screenWidth / 2 - 100 + 5, 180 + 8, 40, rl.Color.orange);
 }
