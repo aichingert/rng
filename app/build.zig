@@ -15,9 +15,36 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const raylib = raylib_dep.module("raylib"); // main raylib module
-    const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
+    const raylib = raylib_dep.module("raylib");
+    const raylib_artifact = raylib_dep.artifact("raylib");
 
+    const mongoose = b.dependency("mongoose", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const lib = b.addStaticLibrary(.{
+        .name = "mongoose",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    if (target.result.os.tag == .windows) {
+        lib.linkSystemLibrary("ws2_32");
+    }
+
+    lib.addIncludePath(mongoose.path("."));
+    lib.addCSourceFiles(.{
+        .root = .{ .dependency = .{
+            .dependency = mongoose,
+            .sub_path = "",
+        } },
+        .files = &.{"mongoose.c"},
+        .flags = &.{},
+    });
+    lib.linkLibC();
+    lib.installHeader(mongoose.path("mongoose.h"), "mongoose.h");
+
+    exe.linkLibrary(lib);
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
 
@@ -26,7 +53,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     exe.root_module.addImport("packets", libprotocol.module("packets"));
-    exe.root_module.addImport("mongoose", libprotocol.module("mongoose"));
 
     b.installArtifact(exe);
 

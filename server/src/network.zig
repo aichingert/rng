@@ -1,63 +1,70 @@
 const std = @import("std");
 const packets = @import("packets");
-const mg = @import("mongoose");
+const Connection = @import("connection.zig").Connection;
 
+const mg = @cImport({
+    @cInclude("mongoose.h");
+});
+
+const allocator = std.heap.page_allocator;
 const server = "ws://localhost:8000";
 var network = Network{
-    .event_mgr = mg.Manager{},
+    .event_mgr = mg.mg_mgr{},
 };
 
+// TODO: running games for spectating
+
+var waiting = std.AutoArrayHashMap(u32, ?*mg.mg_connection).init(allocator);
+
 pub const Network = struct {
-    event_mgr: mg.Manager,
+    event_mgr: mg.mg_mgr,
 
     const Self = @This();
 
     fn broadcast(self: *Self, packet: packets.Set) void {
-        var next = mg.toConnection(self.event_mgr.conns);
+        var next = Connection.castFromCType(self.event_mgr.conns);
         const str: []const u8 = packet.encode();
 
-        std.debug.print("broadcast: \n", .{});
         while (next) |conn| {
-            std.debug.print("{?}\n", .{conn.is_listening});
-
-            // mg.WEBSOCKET_OP_TEXT = 1
-            conn.wsSend(str.ptr, str.len, 1);
+            _ = mg.mg_ws_send(conn.castToCType(), str.ptr, str.len, mg.WEBSOCKET_OP_TEXT);
             next = conn.next;
         }
+
         std.debug.print("finished\n", .{});
     }
 
-    fn event_handler(c: ?*mg.MgConnection, event: c_int, event_data: ?*anyopaque) callconv(.C) void {
-        if (event == mg.Event.http_msg) {
-            if (@as(?*mg.HttpMessage, @ptrCast(@alignCast(event_data)))) |hm| {
+    fn event_handler(c: ?*mg.mg_connection, event: c_int, event_data: ?*anyopaque) callconv(.C) void {
+        if (event == mg.MG_EV_HTTP_MSG) {
+            if (@as(?*mg.mg_http_message, @ptrCast(@alignCast(event_data)))) |hm| {
                 if (mg.mg_match(hm.uri, mg.mg_str("/websocket"), null)) {
                     mg.mg_ws_upgrade(c, hm, null);
                 }
             }
         }
 
-        if (event != mg.Event.ws_msg) {
+        if (event != mg.MG_EV_WS_MSG) {
             return;
         }
 
-        if (@as(?*mg.WsMessage, @ptrCast(@alignCast(event_data)))) |wm| {
-            std.debug.print("{s}\n", .{wm.data.buf[5..]});
-            const idx = std.fmt.parseInt(i32, std.mem.span(wm.data.buf[5..]), 10) catch |e| {
-                std.debug.print("{?}\n", .{e});
-                return;
-            };
+        if (@as(?*mg.mg_ws_message, @ptrCast(@alignCast(event_data)))) |wm| {
+            const data: []const u8 = std.mem.span(wm.data.buf);
 
-            network.broadcast(packets.Set{ .idx = idx });
+            switch (packets.PacketType.getType(data)) {
+                .join_lobby => {},
+                else => {},
+            }
+
+            //network.broadcast(packets.Set{ .idx = idx });
         }
     }
 
     pub fn init() void {
-        mg.mgrInit(&network.event_mgr);
-        _ = mg.httpListen(&network.event_mgr, server, event_handler, null);
+        mg.mg_mgr_init(&network.event_mgr);
+        _ = mg.mg_http_listen(&network.event_mgr, server, event_handler, null);
 
         std.debug.print("WS listening on {s}\n", .{server});
 
-        while (true) mg.mgrPoll(&network.event_mgr);
-        mg.mgrFree(&network.event_mgr);
+        while (true) mg.mg_mgr_poll(&network.event_mgr, 100);
+        mg.mgr_free(&network.event_mgr);
     }
 };
