@@ -6,6 +6,8 @@ const mg = @cImport({
     @cInclude("mongoose.h");
 });
 
+pub const allocator = std.heap.page_allocator;
+
 const Thread = std.Thread;
 const Mutex = Thread.Mutex;
 
@@ -14,37 +16,54 @@ const server = "ws://localhost:8000/websocket";
 
 pub var tasks = Tasks.init();
 pub var colors: [81]rl.Color = [_]rl.Color{rl.Color.white} ** 81;
-const players: [2]rl.Color = [_]rl.Color{ rl.Color.blue, rl.Color.orange };
 
 pub const Tasks = struct {
     mutex: Mutex,
-    position: i32,
-    i: usize,
+    packet: ?[]const u8,
+    username: []const u8,
 
     const Self = @This();
 
     pub fn init() Self {
         return Self{
-            .position = -1,
-            .i = 0,
             .mutex = Mutex{},
+            .packet = null,
+            .username = "",
         };
     }
 
-    pub fn setPosition(self: *Self, pos: i32) void {
+    pub fn blockForLogin(self: *Self) void {
         self.mutex.lock();
-        defer self.mutex.unlock();
-
-        self.position = pos;
     }
 
-    pub fn getPosition(self: *Self) i32 {
+    pub fn unblockForLogin(self: *Self, name: []const u8) void {
+        self.username = name;
+        self.mutex.unlock();
+    }
+
+    pub fn setPacket(self: *Self, data: []const u8) void {
         self.mutex.lock();
         defer self.mutex.unlock();
 
-        const value = self.position;
-        self.position = -1;
-        return value;
+        std.debug.print("SETTTING {s}\n", .{data});
+        self.packet = data;
+    }
+
+    pub fn getPacket(self: *Self) ?[]const u8 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        if (self.packet == null) {
+            return null;
+        }
+
+        const data = allocator.alloc(u8, self.packet.?.len) catch {
+            return null;
+        };
+
+        @memcpy(data, self.packet.?);
+        self.packet = null;
+        return data;
     }
 };
 
@@ -55,35 +74,50 @@ fn event_handler(
 ) callconv(.C) void {
     // TODO: check that ws connection was successful if (event == mg.MG_EV_WS_OPEN) {
     if (event == mg.MG_EV_WS_OPEN) {
-        std.debug.print("connection\n", .{});
+        const str = packets.JoinLobbyServer.encode(tasks.username, allocator);
+        _ = mg.mg_ws_send(c, str.ptr, str.len, mg.WEBSOCKET_OP_TEXT);
     }
 
     if (event == mg.MG_EV_WS_MSG) {
         if (event_data) |data| {
             const wm = @as(*mg.mg_ws_message, @ptrCast(@alignCast(data)));
+            const buf = std.mem.span(wm.data.buf);
 
-            if (std.fmt.parseInt(usize, std.mem.span(wm.data.buf[5..]), 10)) |idx| {
-                colors[idx] = players[tasks.i];
-                tasks.i = 1 - tasks.i;
-            } else |err| {
-                std.debug.print("{?}\n", .{err});
+            std.debug.print("BUFFER: {any}\n", .{buf});
+            switch (packets.PacketType.getType(buf)) {
+                .game_enqueue => {
+                    const enemy = packets.GameEnqueue.decode(buf);
+                    std.debug.print("{?}\n", .{enemy});
+                },
+                else => {
+                    std.debug.print("{s}\n", .{buf});
+                },
             }
         }
     }
 
-    const position = tasks.getPosition();
-
-    if (position != -1) {
-        const str = (packets.Set{ .idx = position }).encode();
-
-        _ = mg.mg_ws_send(c, str.ptr, str.len, mg.WEBSOCKET_OP_TEXT);
+    if (tasks.getPacket()) |packet| {
+        std.debug.print("received package {s}\n", .{packet});
+        _ = mg.mg_ws_send(c, packet.ptr, packet.len, mg.WEBSOCKET_OP_TEXT);
     }
+
+    // const position = tasks.getPosition();
+    //const position = -1;
+
+    //if (position != -1) {
+    //    const str = (packets.Set{ .idx = position }).encode();
+
+    //    _ = mg.mg_ws_send(c, str.ptr, str.len, mg.WEBSOCKET_OP_TEXT);
+    //}
 }
 
 pub fn init() void {
     var event_mgr = mg.mg_mgr{};
     mg.mg_mgr_init(&event_mgr);
     var is_done = false;
+
+    // Waiting for the mutex so the username is set
+    _ = tasks.getPacket();
 
     const conn = mg.mg_ws_connect(&event_mgr, server, event_handler, &is_done, null);
 
