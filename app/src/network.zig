@@ -14,13 +14,21 @@ const Mutex = Thread.Mutex;
 //const server = "ws://pattern.nitoa.at/websocket";
 const server = "ws://localhost:8000/websocket";
 
+pub const GameScreen = enum {
+    login,
+    lobby,
+    game,
+};
+
 pub var tasks = Tasks.init();
+pub var screen: GameScreen = GameScreen.login;
+pub var enemy: []u8 = undefined;
 pub var colors: [81]rl.Color = [_]rl.Color{rl.Color.white} ** 81;
 
 pub const Tasks = struct {
     mutex: Mutex,
     packet: ?[]const u8,
-    username: []const u8,
+    username: []u8,
 
     const Self = @This();
 
@@ -28,7 +36,7 @@ pub const Tasks = struct {
         return Self{
             .mutex = Mutex{},
             .packet = null,
-            .username = "",
+            .username = undefined,
         };
     }
 
@@ -37,15 +45,16 @@ pub const Tasks = struct {
     }
 
     pub fn unblockForLogin(self: *Self, name: []const u8) void {
-        self.username = name;
+        self.username = allocator.alloc(u8, name.len) catch {
+            @panic("it's over");
+        };
+        @memcpy(self.username, name);
         self.mutex.unlock();
     }
 
     pub fn setPacket(self: *Self, data: []const u8) void {
         self.mutex.lock();
         defer self.mutex.unlock();
-
-        std.debug.print("SETTTING {s}\n", .{data});
         self.packet = data;
     }
 
@@ -83,11 +92,14 @@ fn event_handler(
             const wm = @as(*mg.mg_ws_message, @ptrCast(@alignCast(data)));
             const buf = std.mem.span(wm.data.buf);
 
-            std.debug.print("BUFFER: {any}\n", .{buf});
             switch (packets.PacketType.getType(buf)) {
                 .game_enqueue => {
-                    const enemy = packets.GameEnqueue.decode(buf);
-                    std.debug.print("{?}\n", .{enemy});
+                    enemy = allocator.alloc(u8, buf.len - 1) catch {
+                        @panic("no");
+                    };
+
+                    @memcpy(enemy, buf[1..]);
+                    screen = GameScreen.game;
                 },
                 else => {
                     std.debug.print("{s}\n", .{buf});

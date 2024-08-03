@@ -72,27 +72,26 @@ pub const Network = struct {
                     std.debug.print("set \n", .{});
                 },
                 .game_enqueue => {
-                    const enqueue = packets.GameEnqueue.decode(data);
-
                     if (lobby.player_two != null) {
                         return;
                     }
-                    std.debug.print("{?}\n", .{c});
 
                     const conn_id = Connection.castFromCType(c).?.*.id;
-                    const player = game.Player.new(enqueue.name, conn_id, allocator);
+                    const name = allocator.alloc(u8, data.len - 1) catch {
+                        return;
+                    };
+                    @memcpy(name, data[1..]);
+                    const player = game.Player.new(name, conn_id, allocator);
 
                     if (lobby.player_one == null) {
-                        std.debug.print("p1 {?}\n", .{player});
                         lobby.player_one = player;
                         return;
                     }
 
-                    std.debug.print("p2 {?}\n", .{player});
                     lobby.player_two = player;
 
-                    const one = packets.GameEnqueue.encode(lobby.player_one.?.name, allocator);
-                    const two = packets.GameEnqueue.encode(lobby.player_two.?.name, allocator);
+                    const one = packets.GameEnqueue.encode(lobby.player_two.?.name, allocator);
+                    const two = packets.GameEnqueue.encode(lobby.player_one.?.name, allocator);
 
                     network.broadcast(one, lobby.player_one.?.conn_id);
                     network.broadcast(two, lobby.player_two.?.conn_id);

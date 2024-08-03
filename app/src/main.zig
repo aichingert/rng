@@ -19,18 +19,10 @@ const pallete = [_]rl.Color{
 };
 
 const maxNameLen = 6;
-
-const GameScreen = enum {
-    login,
-    lobby,
-    game,
-};
-
 var frameCount: u32 = 0;
 
 var input: [maxNameLen:0]u8 = undefined;
 var index: usize = 0;
-var screen = GameScreen.login;
 
 pub fn main() anyerror!void {
     net.tasks.blockForLogin();
@@ -47,11 +39,12 @@ pub fn main() anyerror!void {
     rl.setTargetFPS(60);
 
     while (!rl.windowShouldClose()) {
+        // FIXME: resizing and recalculating everything
         rl.beginDrawing();
         rl.clearBackground(pallete[0]);
         defer rl.endDrawing();
 
-        switch (screen) {
+        switch (net.screen) {
             .game => {
                 if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
                     const y = @divFloor(rl.getMouseY() - range, range);
@@ -65,6 +58,21 @@ pub fn main() anyerror!void {
                         }
                     }
                 }
+
+                rl.drawText(
+                    @as([*:0]const u8, @ptrCast(@alignCast(net.tasks.username))),
+                    40,
+                    40,
+                    40,
+                    pallete[1],
+                );
+                rl.drawText(
+                    @as([*:0]const u8, @ptrCast(@alignCast(net.enemy))),
+                    screenWidth - 180,
+                    40,
+                    40,
+                    rl.Color.blue,
+                );
 
                 for (0..9) |x| {
                     const dx = @as(i32, @intCast(x));
@@ -102,7 +110,7 @@ fn login() void {
     }
     if (rl.isKeyPressed(rl.KeyboardKey.key_enter)) {
         net.tasks.unblockForLogin(@as([]const u8, &input));
-        screen = GameScreen.lobby;
+        net.screen = net.GameScreen.lobby;
     }
 
     while (key > 0) {
@@ -131,15 +139,12 @@ fn login() void {
 }
 
 fn lobby() void {
-    // screenWidth/2.0f - button.width/2.0f,
-    // screenHeight/2.0f - button.height/NUM_FRAMES/2.0f,
-    // (float)button.width, frameHeight
     const btn = rl.Rectangle.init(screenWidth / 2 - 250 / 2, screenHeight / 2 - 100, 250, 50);
     var color: rl.Color = pallete[0];
 
     // Check button state
     if (rl.checkCollisionPointRec(rl.getMousePosition(), btn)) {
-        color = pallete[1];
+        color = pallete[2];
 
         if (rl.isMouseButtonReleased(rl.MouseButton.mouse_button_left)) {
             std.debug.print("enqueue package\n", .{});
@@ -160,6 +165,6 @@ fn lobby() void {
         screenWidth / 2 - 80,
         screenHeight / 2 - 100,
         40,
-        pallete[2],
+        pallete[1],
     );
 }
