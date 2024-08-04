@@ -54,7 +54,7 @@ pub fn main() anyerror!void {
                         const idx = @as(usize, @intCast(y * 9 + x));
 
                         if (idx < 81) {
-                            //net.tasks.setPosition(@as(i32, @intCast(idx)));
+                            net.tasks.setPacket(packets.Set.encode(idx, 0, net.allocator));
                         }
                     }
                 }
@@ -89,6 +89,20 @@ pub fn main() anyerror!void {
                         );
                     }
                 }
+            },
+            .outcome => {
+                const text = if (net.outcome == 0) "lost" else "won";
+                const color = if (net.outcome == 0) rl.Color.blue else pallete[1];
+
+                rl.drawText(
+                    text,
+                    screenWidth / 2 - 80,
+                    screenHeight / 2 - 50,
+                    40,
+                    color,
+                );
+
+                lobby();
             },
             .login => login(),
             .lobby => lobby(),

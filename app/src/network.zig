@@ -11,19 +11,23 @@ pub const allocator = std.heap.page_allocator;
 const Thread = std.Thread;
 const Mutex = Thread.Mutex;
 
-//const server = "ws://pattern.nitoa.at/websocket";
-const server = "ws://localhost:8000/websocket";
+const server = "ws://pattern.nitoa.at/websocket";
+//const server = "ws://localhost:8000/websocket";
 
 pub const GameScreen = enum {
     login,
     lobby,
+    outcome,
     game,
 };
 
 pub var tasks = Tasks.init();
 pub var screen: GameScreen = GameScreen.login;
 pub var enemy: []u8 = undefined;
+pub var outcome: u1 = 0;
+
 pub var colors: [81]rl.Color = [_]rl.Color{rl.Color.white} ** 81;
+const players: [2]rl.Color = [_]rl.Color{ rl.Color.blue, rl.Color.orange };
 
 pub const Tasks = struct {
     mutex: Mutex,
@@ -90,9 +94,13 @@ fn event_handler(
     if (event == mg.MG_EV_WS_MSG) {
         if (event_data) |data| {
             const wm = @as(*mg.mg_ws_message, @ptrCast(@alignCast(data)));
-            const buf = std.mem.span(wm.data.buf);
+            const buf: []const u8 = std.mem.span(wm.data.buf);
 
             switch (packets.PacketType.getType(buf)) {
+                .game_set => {
+                    const set = packets.Set.decode(buf);
+                    colors[set.idx] = players[@as(usize, set.color)];
+                },
                 .game_enqueue => {
                     enemy = allocator.alloc(u8, buf.len - 1) catch {
                         @panic("no");
@@ -100,6 +108,11 @@ fn event_handler(
 
                     @memcpy(enemy, buf[1..]);
                     screen = GameScreen.game;
+                },
+                .game_finished => {
+                    outcome = packets.GameFinished.decode(buf).outcome;
+                    colors = [_]rl.Color{rl.Color.white} ** 81;
+                    screen = GameScreen.outcome;
                 },
                 else => {
                     std.debug.print("{s}\n", .{buf});
@@ -109,18 +122,8 @@ fn event_handler(
     }
 
     if (tasks.getPacket()) |packet| {
-        std.debug.print("received package {s}\n", .{packet});
         _ = mg.mg_ws_send(c, packet.ptr, packet.len, mg.WEBSOCKET_OP_TEXT);
     }
-
-    // const position = tasks.getPosition();
-    //const position = -1;
-
-    //if (position != -1) {
-    //    const str = (packets.Set{ .idx = position }).encode();
-
-    //    _ = mg.mg_ws_send(c, str.ptr, str.len, mg.WEBSOCKET_OP_TEXT);
-    //}
 }
 
 pub fn init() void {

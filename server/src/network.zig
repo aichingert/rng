@@ -16,7 +16,8 @@ var network = Network{
 var lobby: game.Lobby = game.Lobby{
     .player_one = null,
     .player_two = null,
-    .game = game.Game.new(),
+    .turn = true,
+    .game = game.Game.new(), // FIXME: replace new with init in zig style
 };
 
 pub const Network = struct {
@@ -24,6 +25,9 @@ pub const Network = struct {
 
     const Self = @This();
 
+    // FIXME: better understand connection to not have to filter them
+    // like this as this is the most inefficent and dumbest method I
+    // could think of
     fn broadcast(self: *Self, packet: []const u8, id: u32) void {
         var next = Connection.castFromCType(self.event_mgr.conns);
 
@@ -38,8 +42,6 @@ pub const Network = struct {
             }
             next = conn.next;
         }
-
-        std.debug.print("finished\n", .{});
     }
 
     fn event_handler(
@@ -69,7 +71,50 @@ pub const Network = struct {
 
             switch (packets.PacketType.getType(data)) {
                 .game_set => {
-                    std.debug.print("set \n", .{});
+                    const set = packets.Set.decode(data);
+                    const omv = lobby.player_one.?.conn_id == Connection.castFromCType(c).?.id;
+
+                    //if (lobby.player_one.?.conn_id == lobby.player_two.?.conn_id) {
+                    //    network.broadcast(packets.Set.encode(set.idx, 1, allocator), lobby.player_one.?.conn_id);
+                    //    return;
+                    //}
+
+                    if (lobby.turn != omv) {
+                        return;
+                    }
+
+                    if (lobby.turn and lobby.game.set(set.idx, 1)) {
+                        if (lobby.game.won(1)) {
+                            network.broadcast(packets.GameFinished.encode(1, allocator), lobby.player_one.?.conn_id);
+                            network.broadcast(packets.GameFinished.encode(0, allocator), lobby.player_two.?.conn_id);
+
+                            lobby.player_one = null;
+                            lobby.player_two = null;
+                            lobby.turn = true;
+                            lobby.game = game.Game.new();
+
+                            return;
+                        }
+                        network.broadcast(packets.Set.encode(set.idx, 1, allocator), lobby.player_one.?.conn_id);
+                        network.broadcast(packets.Set.encode(set.idx, 0, allocator), lobby.player_two.?.conn_id);
+                        lobby.turn = !lobby.turn;
+                    } else if (lobby.game.set(set.idx, 2)) {
+                        if (lobby.game.won(2)) {
+                            network.broadcast(packets.GameFinished.encode(0, allocator), lobby.player_one.?.conn_id);
+                            network.broadcast(packets.GameFinished.encode(1, allocator), lobby.player_two.?.conn_id);
+
+                            lobby.player_one = null;
+                            lobby.player_two = null;
+                            lobby.turn = true;
+                            lobby.game = game.Game.new();
+
+                            return;
+                        }
+
+                        network.broadcast(packets.Set.encode(set.idx, 0, allocator), lobby.player_one.?.conn_id);
+                        network.broadcast(packets.Set.encode(set.idx, 1, allocator), lobby.player_two.?.conn_id);
+                        lobby.turn = !lobby.turn;
+                    }
                 },
                 .game_enqueue => {
                     if (lobby.player_two != null) {
@@ -83,7 +128,7 @@ pub const Network = struct {
                     @memcpy(name, data[1..]);
                     const player = game.Player.new(name, conn_id, allocator);
 
-                    if (lobby.player_one == null) {
+                    if (lobby.player_one == null or lobby.player_one.?.conn_id == conn_id) {
                         lobby.player_one = player;
                         return;
                     }
@@ -99,6 +144,7 @@ pub const Network = struct {
 
                 // TODO: implement proper multiplayer and spectator support
                 // (probably/hopefully refactor everything in the process)
+                .game_finished => {},
                 .join_lobby => {},
                 .join_waiting => {},
                 .join_running => {},
