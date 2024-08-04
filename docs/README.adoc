@@ -1,20 +1,12 @@
-= toc
-:toc: left
-:sectnums:
+= zga
+aichinger
+:icons: font
+:toc:
 :toclevels: 3
-:table-caption:
-:linkattrs:
-:experimental:
-aichingert
 
-This is an advanced implementation of tic-tac-toe which has some special rules.
+multiple small multiplayer games written in zig with custom networking and graphics library (TODO).
 
-== Rules
+== finished
 
-* the board has nine 3x3 boards like the board in the middle
-* the boards are connected with each other
-* the connections are tied to the previous move
-* the first move is freely choosable
-* after the first move the second player has to play in the board which has been marked by the first player
-
-
+* toc (currently using raylib and mongoose)
+** is an advanced tic-tac-toe clone
