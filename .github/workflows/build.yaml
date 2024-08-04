@@ -14,16 +14,16 @@ jobs:
         with:
           version: 0.13.0
       - run: |
-          cd toc/server
+          cd games/toc/server
           zig build
       - run: |
-          cd toc/app
+          cd games/toc/app
           zig build -Dtarget=x86_64-windows-gnu -Doptimize=ReleaseSafe
       - name: Archive upload
         uses: actions/upload-artifact@v4
         with:
           name: app
-          path: toc/app/zig-out/bin/app.exe
+          path: games/toc/app/zig-out/bin/app.exe
 
           if-no-files-found: warn
           overwrite: true

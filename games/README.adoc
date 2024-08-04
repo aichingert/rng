@@ -1,0 +1,3 @@
+= games
+
+Here are all the games that are currently in progress and finished.

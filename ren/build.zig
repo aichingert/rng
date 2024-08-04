@@ -18,13 +18,13 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const platform = b.option(Platform, "platform", "zet platform to use") orelse Platform.fromTarget(target.result);
+    const platform = b.option(Platform, "platform", "ren platform to use") orelse Platform.fromTarget(target.result);
 
     const build_options = b.addOptions();
     build_options.addOption(Platform, "platform", platform);
 
     const exe = b.addExecutable(.{
-        .name = "zet",
+        .name = "ren",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
