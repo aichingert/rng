@@ -7,11 +7,7 @@ pub fn main() !void {
     if (Platform == .unix) {
         std.debug.print("well hello friends from unix\n", .{});
     }
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
