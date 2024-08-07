@@ -1,5 +1,5 @@
 .{
-    .name = "zast",
+    .name = "spcd",
     .version = "0.0.0",
 
     .dependencies = .{},
