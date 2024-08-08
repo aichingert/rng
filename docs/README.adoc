@@ -1,4 +1,4 @@
-= zga
+= gaz (games with zig)
 aichinger
 :icons: font
 :toc:
