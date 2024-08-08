@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
     build_options.addOption(Platform, "platform", platform);
 
     module.addImport("options", build_options.createModule());
+    setupVulkan(b, module);
 
     switch (platform) {
         .linux, .win32, .macos => {
@@ -57,6 +58,22 @@ pub fn build(b: *std.Build) void {
     const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+}
+
+pub fn setupVulkan(b: *std.Build, module: *std.Build.Module) void {
+    const registry = b.dependency("vulkan_headers", .{}).path("registry/vk.xml");
+    const vk_gen = b.dependency("vulkan_zig", .{}).artifact("vulkan-zig-generator");
+    const vk_generate_cmd = b.addRunArtifact(vk_gen);
+
+    vk_generate_cmd.addArg(registry.getPath(b));
+
+    const vulkan_zig = b.addModule("vulkan-zig", .{
+        .root_source_file = vk_generate_cmd.addOutputFileArg("vk.zig"),
+        .target = module.resolved_target orelse b.host,
+        .optimize = module.optimize.?,
+    });
+
+    module.addImport("vulkan", vulkan_zig);
 }
 
 pub fn setupGlfw(b: *std.Build, module: *std.Build.Module, platform: Platform) void {

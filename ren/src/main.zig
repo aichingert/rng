@@ -4,30 +4,41 @@ const options = @import("options");
 const Graphics = @import("Graphics.zig");
 
 const glfw = @cImport({
+    @cDefine("GLFW_INCLUDE_VULKAN", {});
     @cInclude("GLFW/glfw3.h");
 });
 
-pub fn main() !void {
-    if (glfw.glfwInit() == 0) {
-        std.debug.print("Oh no\n", .{});
-    }
+const vk = @import("vulkan");
 
-    const monitor = glfw.glfwGetPrimaryMonitor();
-    const window = glfw.glfwCreateWindow(640, 480, "Ren", null, null);
-
-    const mode = glfw.glfwGetVideoMode(monitor);
-
-    glfw.glfwWindowHint(glfw.GLFW_RED_BITS, mode.*.redBits);
-    glfw.glfwWindowHint(glfw.GLFW_GREEN_BITS, mode.*.greenBits);
-    glfw.glfwWindowHint(glfw.GLFW_BLUE_BITS, mode.*.blueBits);
-
-    //while (glfw.glfwWindowShouldClose(window) == 0) {}
-
-    glfw.glfwDestroyWindow(window);
-    glfw.glfwTerminate();
+fn errorCallback(error_code: c_int, description: [*c]const u8) callconv(.C) void {
+    std.log.err("glfw: {}: {s}\n", .{ error_code, description });
 }
 
 test "setup glfw" {
-    try std.testing.expect(glfw.glfwInit() != 0);
-    glfw.glfwTerminate();
+    _ = glfw.glfwSetErrorCallback(errorCallback);
+    try std.testing.expect(glfw.glfwInit() == glfw.GLFW_TRUE);
+    defer glfw.glfwTerminate();
+
+    try std.testing.expect(glfw.glfwVulkanSupported() == glfw.GLFW_TRUE);
+
+    glfw.glfwWindowHint(glfw.GLFW_CLIENT_API, glfw.GLFW_NO_API);
+    const window = glfw.glfwCreateWindow(640, 480, "ren", null, null);
+    defer glfw.glfwDestroyWindow(window);
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    //var counter: i32 = 0;
+
+    //while (glfw.glfwWindowShouldClose(window) == 0) {
+    //    counter += 1;
+
+    //    std.debug.print("{d}\n", .{counter});
+    //    if (counter > 20000000) {
+    //        break;
+    //    }
+    //}
+
+    _ = allocator;
 }
