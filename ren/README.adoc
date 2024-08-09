@@ -1,3 +1,0 @@
-= ren
-
-this is a simple graphics renderer using webgpu (with the google/dawn implementation).
