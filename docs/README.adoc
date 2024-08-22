@@ -1,12 +1,14 @@
-= gaz (games with zig)
+= Fun
 aichinger
 :icons: font
 :toc:
 :toclevels: 3
 
-multiple small multiplayer games written in zig with custom networking and graphics library (TODO).
+just a couple of games I have written to enjoy with friends, therefore the name fun. 
 
 == finished
 
 * toc (currently using raylib and mongoose)
 ** is an advanced tic-tac-toe clone
+* space 
+** TODO: is currently under developement using my own graphics and networking library (which I have to write first)

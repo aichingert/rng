@@ -17,7 +17,7 @@ async function init() {
                    @location(1) color: vec4f) -> VertexOut
     {
         var output : VertexOut;
-        output.position = vec4f(position.x + transform.position.x, position.y + transform.position.y, position.zw);
+        output.position = position;
         output.color = color;
         return output;
     }
@@ -50,10 +50,21 @@ async function init() {
     const vertices = new Float32Array([
         0.0, 0.6, 0, 1, // pos
         1, 0, 0, 1,     // col
+
         -0.5,-0.6, 0, 1, 
         0, 1, 0, 1, 
+
+        -0.5,-0.6, 0, 1, 
+        0, 1, 0, 1, 
+
         0.5,-0.6, 0, 1, 
         0, 0, 1, 1,
+
+        0.5,-0.6, 0, 1, 
+        0, 0, 1, 1,
+
+        0.0, 0.6, 0, 1, 
+        1, 0, 0, 1,
     ]);
 
     const vertexBuffer = device.createBuffer({
@@ -129,7 +140,7 @@ async function init() {
             ],
         },
         primitive: {
-            topology: "triangle-list",
+            topology: "line-list",
         },
         layout: pipelineLayout,
     };
@@ -156,7 +167,7 @@ async function init() {
     passEncoder.setPipeline(renderPipeline);
     passEncoder.setVertexBuffer(0, vertexBuffer);
     passEncoder.setBindGroup(0, bindGroup);
-    passEncoder.draw(3);
+    passEncoder.draw(6);
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
