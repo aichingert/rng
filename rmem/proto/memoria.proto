@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package memoria;
+
+service Handler {
+  rpc CreateGame(CreateRequest) returns (CreateReply);
+}
+
+message CreateRequest {
+  uint32 players = 1;
+  uint32 dimensions = 2;
+}
+
+message CreateReply {
+  bool success = 1;
+}

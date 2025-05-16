@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Tonic Example</title>
+</head>
+<body>
+    <h1>WASM Tonic Example</h1>
+    <button id="requestButton">Request Data</button>
+    <div id="response"></div>
+
+    <script type="module">
+        import init, { request_data } from './pkg/client.js';
+
+        async function run() {
+            await init();
+            document.getElementById('requestButton').onclick = async () => {
+                const response = await request_data();
+                document.getElementById('response').innerText = response;
+            };
+        }
+
+        run();
+    </script>
+</body>
+</html>
+
