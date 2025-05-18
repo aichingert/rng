@@ -2,12 +2,22 @@ syntax = "proto3";
 
 package memoria;
 
-service Handler {
+service LobbyService {
+  rpc RegisterToLobby (Empty) returns (stream LobbyReply) {}
+}
+
+service GameService {
   rpc CreateGame(CreateRequest) returns (CreateReply) {}
   rpc JoinGame(Empty) returns (stream CreateReply) {}
 }
 
 message Empty {}
+
+message LobbyReply {
+  uint32 id = 1;
+  uint32 players = 2;
+  uint32 dimensions = 3;
+}
 
 message CreateRequest {
   uint32 players = 1;
