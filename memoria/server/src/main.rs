@@ -1,4 +1,12 @@
+use std::pin::Pin;
+use std::sync::Arc;
+
 use http::header::HeaderName;
+use tokio_stream::{wrappers::ReceiverStream, Stream};
+use tokio::sync::{
+    Mutex,
+    mpsc::{self, Sender},
+};
 use tonic::{transport::Server, Request, Response, Status};
 use tonic_web::GrpcWebLayer;
 use tower_http::cors::{AllowOrigin, CorsLayer};
@@ -8,18 +16,40 @@ pub mod memoria {
 }
 
 use memoria::handler_server::{Handler, HandlerServer};
-use memoria::{CreateRequest, CreateReply};
+use memoria::{Empty, CreateRequest, CreateReply};
 
-#[derive(Debug, Default)]
-pub struct GameHandler {}
+#[derive(Debug)]
+pub struct GameHandler {
+    games: Arc<Mutex<Vec<Sender<Result<CreateReply, Status>>>>>,
+}
 
 #[tonic::async_trait]
 impl Handler for GameHandler {
+    type JoinGameStream = Pin<Box<dyn Stream<Item = Result<CreateReply, Status>> + Send>>;
+
+    // send
     async fn create_game(&self, request: Request<CreateRequest>) -> Result<Response<CreateReply>, Status> {
         println!("got a request: {:?}", request);
 
+        for (i, s) in self.games.lock().await.iter().enumerate() {
+            s.send(Ok(CreateReply { success: i % 2 == 0 })).await.unwrap();
+        }
+
         let reply = CreateReply { success: true };
         Ok(Response::new(reply))
+    }
+
+    async fn join_game(&self, _: Request<Empty>) -> Result<Response<Self::JoinGameStream>, Status> {
+        let (tx, rx) = mpsc::channel(128);
+
+        tx.send(Result::<_, Status>::Ok(CreateReply { success: true })).await.unwrap();
+        self.games.lock().await.push(tx);
+
+        let output_stream: ReceiverStream<Result<CreateReply, Status>> = ReceiverStream::new(rx);
+        
+        Ok(Response::new(
+            Box::pin(output_stream) as Self::JoinGameStream
+        ))
     }
 }
 
@@ -39,7 +69,7 @@ const DEFAULT_ALLOW_HEADERS: [HeaderName; 4] = [
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
-    let handler = GameHandler::default();
+    let handler = GameHandler { games: Arc::new(Mutex::new(Vec::new())) };
 
     Server::builder()
         .accept_http1(true)

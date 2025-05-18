@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 prost = "0.13.5"
+tokio-stream = "0.1.17"
 tonic = { version = "0.13.0", default-features = false, features = [
     "prost",
     "codegen",

@@ -3,8 +3,11 @@ syntax = "proto3";
 package memoria;
 
 service Handler {
-  rpc CreateGame(CreateRequest) returns (CreateReply);
+  rpc CreateGame(CreateRequest) returns (CreateReply) {}
+  rpc JoinGame(Empty) returns (stream CreateReply) {}
 }
+
+message Empty {}
 
 message CreateRequest {
   uint32 players = 1;
