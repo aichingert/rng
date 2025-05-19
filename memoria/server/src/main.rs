@@ -11,6 +11,9 @@ use server::{
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
 
+    let game_handler = GameHandler::new();
+    let lobby_handler = LobbyHandler::new(game_handler.games_in_progress.clone());
+
     Server::builder()
         .accept_http1(true)
         .layer(
@@ -22,8 +25,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .allow_headers(DEFAULT_ALLOW_HEADERS),
         )
         .layer(GrpcWebLayer::new())
-        .add_service(GameServiceServer::new(GameHandler::new()))
-        .add_service(LobbyServiceServer::new(LobbyHandler::new()))
+        .add_service(GameServiceServer::new(game_handler))
+        .add_service(LobbyServiceServer::new(lobby_handler))
         .serve(addr)
         .await?;
 

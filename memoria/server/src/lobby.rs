@@ -15,14 +15,18 @@ pub struct LobbyHandler {
     lobby_id: Arc<Mutex<u32>>,
     players: Arc<Mutex<Vec<Sender<Result<LobbyReply, Status>>>>>,
     games_available: Arc<Mutex<HashMap<u32, Game>>>,
+
+    // shared with game
+    games_in_progress: Arc<Mutex<HashMap<u32, Game>>>,
 }
 
 impl LobbyHandler {
-    pub fn new() -> Self {
+    pub fn new(games_in_progress: Arc<Mutex<HashMap<u32, Game>>>) -> Self {
         Self {
             lobby_id: Arc::new(Mutex::new(1)),
             players: Arc::new(Mutex::new(Vec::new())),
             games_available: Arc::new(Mutex::new(HashMap::new())),
+            games_in_progress,
         }
     }
 }
@@ -30,6 +34,7 @@ impl LobbyHandler {
 #[tonic::async_trait]
 impl LobbyService for LobbyHandler {
     type RegisterToLobbyStream = Pin<Box<dyn Stream<Item = Result<LobbyReply, Status>> + Send>>;
+    type JoinGameStream = Pin<Box<dyn Stream<Item = Result<GameStateReply, Status>> + Send>>;
 
     async fn register_to_lobby(
         &self,
@@ -37,13 +42,15 @@ impl LobbyService for LobbyHandler {
     ) -> Result<Response<Self::RegisterToLobbyStream>, Status> {
         let (tx, rx) = mpsc::channel(128);
 
-        println!("Apply");
-
         for (id, game) in self.games_available.lock().await.iter() {
-            let dimensions = (game.width as u32) << 16 & (game.height as u32);
-            tx.send(Ok(LobbyReply { id: *id, players: game.players, dimensions }))
-                .await
-                .unwrap();
+            let rep = LobbyReply {
+                id: *id,
+                connected: game.connected.len() as u32,
+                player_cap: game.player_cap,
+                dimensions: (game.width as u32) << 16 & (game.height as u32),
+            };
+
+            tx.send(Ok(rep)).await.unwrap();
         }
         self.players.lock().await.push(tx);
 
@@ -57,10 +64,11 @@ impl LobbyService for LobbyHandler {
         let rep = {
             let creq = req.into_inner();
             let mut cur = self.lobby_id.lock().await;
-            let game = Game { 
-                players: creq.players, 
-                width: (creq.dimensions >> 16) as u16, 
+            let game = Game {
+                width: (creq.dimensions >> 16) as u16,
                 height: (0xffff0000 & creq.dimensions) as u16,
+                player_cap: creq.player_cap,
+                connected: Vec::new(),
             };
 
             self.games_available.lock().await.insert(*cur, game);
@@ -68,12 +76,56 @@ impl LobbyService for LobbyHandler {
 
             LobbyReply {
                 id: *cur - 1,
-                players: creq.players,
+                connected: 0,
+                player_cap: creq.player_cap,
                 dimensions: creq.dimensions,
             }
         };
 
-        self.players.lock().await.retain(|p| p.try_send(Ok(rep)).is_ok());
+        self.players
+            .lock()
+            .await
+            .retain(|p| p.try_send(Ok(rep)).is_ok());
         Ok(Response::new(Empty {}))
+    }
+
+    async fn join_game(
+        &self,
+        req: Request<JoinRequest>,
+    ) -> Result<Response<Self::JoinGameStream>, Status> {
+        let id = req.into_inner().id;
+        let mut avail_games = self.games_available.lock().await;
+
+        let Some(game) = avail_games.get_mut(&id) else {
+            return Err(Status::not_found("Err: Invalid Game Id"));
+        };
+
+        let (tx, rx) = mpsc::channel(128);
+        game.connected.push(tx);
+
+        let mut rep = LobbyReply {
+            id,
+            connected: 0,
+            player_cap: game.player_cap,
+            dimensions: 0,
+        };
+
+        if game.player_cap == game.connected.len() as u32 {
+            let game = avail_games.remove(&id).unwrap();
+            self.games_in_progress.lock().await.insert(id, game);
+            rep.connected = rep.player_cap;
+        } else {
+            rep.connected = game.connected.len() as u32;
+        }
+
+        self.players
+            .lock()
+            .await
+            .retain(|p| p.try_send(Ok(rep)).is_ok());
+
+        let output_stream = ReceiverStream::new(rx);
+        Ok(Response::new(
+            Box::pin(output_stream) as Self::JoinGameStream
+        ))
     }
 }

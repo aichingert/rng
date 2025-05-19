@@ -3,26 +3,34 @@ syntax = "proto3";
 package memoria;
 
 service LobbyService {
-  rpc RegisterToLobby (Empty) returns (stream LobbyReply) {}
-  rpc CreateGame      (CreateRequest) returns (Empty)     {}
+  rpc RegisterToLobby (Empty)         returns (stream LobbyReply)     {}
+  rpc CreateGame      (CreateRequest) returns (Empty)                 {}
+  rpc JoinGame        (JoinRequest)   returns (stream GameStateReply) {}
 }
 
 service GameService {
-  rpc CreateGame(CreateRequest) returns (CreateReply) {}
-  rpc JoinGame(Empty) returns (stream CreateReply) {}
 }
 
 message Empty {}
 
 message LobbyReply {
   uint32 id = 1;
-  uint32 players = 2;
-  uint32 dimensions = 3;
+  uint32 connected = 2;
+  uint32 player_cap = 3;
+  uint32 dimensions = 4;
 }
 
 message CreateRequest {
-  uint32 players = 1;
+  uint32 player_cap = 1;
   uint32 dimensions = 2;
+}
+
+message JoinRequest {
+  uint32 id = 1;
+}
+
+message GameStateReply {
+  string message = 1;
 }
 
 message CreateReply {

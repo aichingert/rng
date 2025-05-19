@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASM Tonic Example</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <title>memoria</title>
 </head>
 <body>
-    <h1>WASM Tonic Example</h1>
+    <h1>memoria</h1>
 
     <button id="createGame">Create Game</button>
     <br>
     <div id="response"></div>
 
     <script type="module">
-        import init, { register_to_lobby, create_game } from './pkg/client.js';
+        import { print_hello } from "./index.js";
+        import init, { register_to_lobby, create_game } from "./pkg/client.js";
 
         window.render_game = function() {
             let d = document.getElementById("response");
@@ -24,9 +30,7 @@
 
         async function run() {
             await init();
-            console.log("here");
             register_to_lobby();
-            console.log("there");
 
             document.getElementById("createGame").onclick = async () => {
                 await create_game();
