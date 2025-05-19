@@ -7,22 +7,29 @@
 </head>
 <body>
     <h1>WASM Tonic Example</h1>
-    <button id="jgame">join game</button>
-    <button id="sgame">send game</button>
+
+    <button id="createGame">Create Game</button>
+    <br>
     <div id="response"></div>
 
     <script type="module">
-        import init, { request_data, join_game } from './pkg/client.js';
+        import init, { register_to_lobby, create_game } from './pkg/client.js';
+
+        window.render_game = function() {
+            let d = document.getElementById("response");
+            let b = document.createElement("button");
+            b.innerText = "game";
+            d.appendChild(b);
+        }
 
         async function run() {
             await init();
-            document.getElementById('sgame').onclick = async () => {
-                const response = await request_data();
-                document.getElementById('response').innerText = response;
-            };
+            console.log("here");
+            register_to_lobby();
+            console.log("there");
 
-            document.getElementById('jgame').onclick = async () => {
-                await join_game();
+            document.getElementById("createGame").onclick = async () => {
+                await create_game();
             };
         }
 

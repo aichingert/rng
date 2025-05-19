@@ -4,6 +4,7 @@ package memoria;
 
 service LobbyService {
   rpc RegisterToLobby (Empty) returns (stream LobbyReply) {}
+  rpc CreateGame      (CreateRequest) returns (Empty)     {}
 }
 
 service GameService {

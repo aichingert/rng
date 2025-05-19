@@ -8,7 +8,7 @@ use tokio::sync::{
     mpsc::{self, Sender},
 };
 use tokio_stream::{Stream, wrappers::ReceiverStream};
-use tonic::{Request, Response, Status, transport::Server};
+use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct Game {

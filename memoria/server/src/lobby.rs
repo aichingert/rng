@@ -12,7 +12,7 @@ use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct LobbyHandler {
-    lobby_id: u32,
+    lobby_id: Arc<Mutex<u32>>,
     players: Arc<Mutex<Vec<Sender<Result<LobbyReply, Status>>>>>,
     games_available: Arc<Mutex<HashMap<u32, Game>>>,
 }
@@ -20,7 +20,7 @@ pub struct LobbyHandler {
 impl LobbyHandler {
     pub fn new() -> Self {
         Self {
-            lobby_id: 1,
+            lobby_id: Arc::new(Mutex::new(1)),
             players: Arc::new(Mutex::new(Vec::new())),
             games_available: Arc::new(Mutex::new(HashMap::new())),
         }
@@ -37,6 +37,8 @@ impl LobbyService for LobbyHandler {
     ) -> Result<Response<Self::RegisterToLobbyStream>, Status> {
         let (tx, rx) = mpsc::channel(128);
 
+        println!("Apply");
+
         for (id, game) in self.games_available.lock().await.iter() {
             let dimensions = (game.width as u32) << 16 & (game.height as u32);
             tx.send(Ok(LobbyReply { id: *id, players: game.players, dimensions }))
@@ -49,5 +51,43 @@ impl LobbyService for LobbyHandler {
         Ok(Response::new(
             Box::pin(output_stream) as Self::RegisterToLobbyStream
         ))
+    }
+
+    async fn create_game(&self, req: Request<CreateRequest>) -> Result<Response<Empty>, Status> {
+        let mut connected = Vec::new();
+        let creq = req.into_inner();
+
+        let game_id = {
+            let mut cur = self.lobby_id.lock().await;
+            let game = Game { 
+                players: creq.players, 
+                width: (creq.dimensions >> 16) as u16, 
+                height: (0xffff0000 & creq.dimensions) as u16,
+            };
+
+            self.games_available.lock().await.insert(*cur, game);
+            *cur += 1;
+            *cur - 1
+        };
+
+        {
+            let mut v = self.players.lock().await;
+            println!("{}", v.len());
+            while let Some(p) = v.pop() {
+                let rep = LobbyReply { 
+                    id: game_id,
+                    players: creq.players,
+                    dimensions: creq.dimensions,
+                };
+
+                if p.try_send(Ok(rep)).is_err() {
+                    continue;
+                }
+                connected.push(p);
+            }
+        }
+
+        *self.players.lock().await = connected;
+        Err(Status::ok(""))
     }
 }
