@@ -54,10 +54,8 @@ impl LobbyService for LobbyHandler {
     }
 
     async fn create_game(&self, req: Request<CreateRequest>) -> Result<Response<Empty>, Status> {
-        let mut connected = Vec::new();
-        let creq = req.into_inner();
-
-        let game_id = {
+        let rep = {
+            let creq = req.into_inner();
             let mut cur = self.lobby_id.lock().await;
             let game = Game { 
                 players: creq.players, 
@@ -67,27 +65,15 @@ impl LobbyService for LobbyHandler {
 
             self.games_available.lock().await.insert(*cur, game);
             *cur += 1;
-            *cur - 1
+
+            LobbyReply {
+                id: *cur - 1,
+                players: creq.players,
+                dimensions: creq.dimensions,
+            }
         };
 
-        {
-            let mut v = self.players.lock().await;
-            println!("{}", v.len());
-            while let Some(p) = v.pop() {
-                let rep = LobbyReply { 
-                    id: game_id,
-                    players: creq.players,
-                    dimensions: creq.dimensions,
-                };
-
-                if p.try_send(Ok(rep)).is_err() {
-                    continue;
-                }
-                connected.push(p);
-            }
-        }
-
-        *self.players.lock().await = connected;
-        Err(Status::ok(""))
+        self.players.lock().await.retain(|p| p.try_send(Ok(rep)).is_ok());
+        Ok(Response::new(Empty {}))
     }
 }
