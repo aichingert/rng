@@ -1,11 +1,14 @@
 use std::{
-    rc::Rc,
     cell::RefCell,
-    sync::{LazyLock, Mutex},
+    rc::Rc,
+    sync::{Arc, LazyLock, Mutex},
 };
 
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{JsCast, JsValue};
+
+use tokio_stream::StreamExt;
 
 const TEMPLATE: &str = r#"
 <style>
@@ -36,12 +39,13 @@ const TEMPLATE: &str = r#"
         text-align: left; 
         font-size: 22px;
     }
-</style>"
+
+</style>
 <h1># Lobby</h1>
 <div class="game-join-buttons">
     <ul class="game-join-button-list">
         <li>
-            <button id="game-id-gen" class="game-join-button">
+            <button id="game-id-gen" class="game-join-button button" onclick="location.href='/#/game'">
                 <table class="game-join-table"> 
                     <tr>
                         <td style="color: #bb9dbd" >connected:</td>
@@ -58,36 +62,54 @@ const TEMPLATE: &str = r#"
 </div>
 "#;
 
-pub struct Lobby {}
+static LOBBY: LazyLock<Mutex<Lobby>> = LazyLock::new(|| {
+    Mutex::new(Lobby {
+        is_worker_init: false,
+        is_lobby_active: false,
+    })
+});
+
+pub struct Lobby {
+    is_worker_init: bool,
+    is_lobby_active: bool,
+}
 
 impl Lobby {
     pub fn init() {
         let doc = web_sys::window().unwrap().document().unwrap();
-        let app  = doc.get_element_by_id("app").unwrap();
+        let app = doc.get_element_by_id("app").unwrap();
         app.set_inner_html(TEMPLATE);
 
-        let worker = Rc::new(RefCell::new(web_sys::Worker::new("./worker.js")));
+        if !LOBBY.lock().unwrap().is_worker_init {
+            let worker = Rc::new(RefCell::new(web_sys::Worker::new("./worker.js")));
+            let handle = worker.borrow().clone().unwrap();
 
-        /*
-        let callback = Closure::new(move || {
-            let client = Client::new(URL.to_string());
-            let mut client = LobbyServiceClient::new(client);
+            let cb = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(
+                move |_: web_sys::MessageEvent| {
+                    let client = crate::Client::new(crate::URL.to_string());
+                    let mut client = crate::LobbyServiceClient::new(client);
 
-            let mut stream = client.register_to_lobby(Empty {})
-                .await
-                .unwrap()
-                .into_inner();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let mut stream = client
+                            .register_to_lobby(crate::Empty {})
+                            .await
+                            .unwrap()
+                            .into_inner();
 
-            while let Some(game) = stream.next().await {
+                        while let Some(game) = stream.next().await {
+                            // render
+                        }
+                    });
+                },
+            );
 
-            }
-        });
-        */
+            handle.set_onmessage(Some(cb.as_ref().unchecked_ref()));
+            cb.forget();
+            handle.post_message(&0.into()).unwrap();
 
-        worker.borrow().clone().unwrap().terminate();
+            LOBBY.lock().unwrap().is_worker_init = true;
+        }
 
+        LOBBY.lock().unwrap().is_lobby_active = true;
     }
 }
-
-
-

@@ -1,10 +1,11 @@
-import init, { route, handle_location } from "./pkg/client.js";
+const {route, handle_location} = wasm_bindgen;
 
 async function run() {
-    await init();
+    await wasm_bindgen();
 
-    window.onpopstate = handle_location;
+    handle_location();
     window.route = route;
+    window.onpopstate = handle_location;
 }
 
 run();

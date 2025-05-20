@@ -42,6 +42,8 @@ impl LobbyService for LobbyHandler {
     ) -> Result<Response<Self::RegisterToLobbyStream>, Status> {
         let (tx, rx) = mpsc::channel(128);
 
+        println!("requesti");
+
         for (id, game) in self.games_available.lock().await.iter() {
             let rep = LobbyReply {
                 id: *id,

@@ -1,9 +1,8 @@
 importScripts("./pkg/client.js");
 
-console.log("init worker");
-
 async function worker_init() {
     // loops
+    self.postMessage(0);
     await wasm_bindgen("./pkg/client_bg.wasm");
 }
 
