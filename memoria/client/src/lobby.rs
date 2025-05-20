@@ -11,7 +11,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::{future_to_promise, js_sys};
 
 use tokio_stream::StreamExt;
-use tonic::{Status, Streaming};
+use tonic::Streaming;
 
 const TEMPLATE: &str = r#"
 <style>
@@ -101,7 +101,7 @@ impl Communicator {
     }
 
     pub fn next(&mut self) -> js_sys::Promise {
-        let mut stream = Arc::clone(&self.stream);
+        let stream = Arc::clone(&self.stream);
 
         future_to_promise(async move {
             let Some(Ok(rep)) = stream.lock().unwrap().next().await else {
@@ -111,8 +111,7 @@ impl Communicator {
             Ok(JsValue::from_str(&format!(
                 "{}|{}|{}|{}",
                 rep.id, rep.connected, rep.player_cap, rep.dimensions
-            ))
-            .into())
+            )))
         })
     }
 }
@@ -125,16 +124,11 @@ impl Lobby {
 
         if !LOBBY.lock().unwrap().is_worker_init {
             let worker = Rc::new(RefCell::new(web_sys::Worker::new("./worker.js").unwrap()));
-
-            #[allow(unused_assignments)]
-            let mut game_cb = get_game_update_cb();
+            let game_cb = get_game_update_cb();
 
             let handle = &*worker.borrow();
             handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
             game_cb.forget();
-
-            //handle.post_message(&0.into()).unwrap();
-            //handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
 
             LOBBY.lock().unwrap().is_worker_init = true;
         }
@@ -142,13 +136,6 @@ impl Lobby {
         let cb = Closure::wrap(Box::new(move || {
             let client = crate::Client::new(crate::URL.to_string());
             let mut client = crate::LobbyServiceClient::new(client);
-
-            /*
-            let handle = &*worker.borrow();
-            handle.post_message(&0.into()).unwrap();
-            game_cb = get_game_update_cb();
-            handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
-            */
 
             wasm_bindgen_futures::spawn_local(async move {
                 _ = client
@@ -159,7 +146,7 @@ impl Lobby {
                     .await
                     .unwrap();
             })
-        }) as Box<dyn FnMut()>);
+        }) as Box<dyn Fn()>);
 
         let btn = doc.get_element_by_id("create-game").unwrap();
         btn.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
@@ -178,9 +165,6 @@ extern "C" {
 
 fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
     Closure::new(move |event: web_sys::MessageEvent| {
-        log("here");
-        log("wtd fkajsdlfk asö");
-
         let data = event
             .data()
             .as_string()
@@ -189,16 +173,12 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
             .map(|n| n.parse::<u32>().unwrap())
             .collect::<Vec<_>>();
 
-        log("parsed");
-
         let game = crate::LobbyReply {
             id: data[0],
             connected: data[1],
             player_cap: data[2],
             dimensions: data[3],
         };
-
-        log("created");
 
         if game.connected == game.player_cap {
             LOBBY.lock().unwrap().active_games.remove(&game.id);
@@ -213,8 +193,6 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
             uli.remove();
             return;
         }
-
-        log("ugh");
 
         if let Some(g) = LOBBY.lock().unwrap().active_games.get_mut(&game.id) {
             g.width = (game.dimensions >> 16) as u16;
@@ -236,32 +214,11 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
         if LOBBY.lock().unwrap().is_lobby_active {
             let doc = web_sys::window().unwrap().document().unwrap();
 
-            /*
-             <li>
-                <button id="game-id-gen" class="game-join-button" onclick="location.href='/#/game'">
-                    <table class="game-join-table">
-                        <tr>
-                            <td style="color: #bb9dbd" >connected:</td>
-                            <td class="connected" style="color: #e0a363" >1 / 3</td>
-                        </tr>
-                        <tr>
-                            <td style="color: #bb9dbd" >dimensions:</td>
-                            <td class="dimensions" style="color: #e0a363" >20 x 20</td>
-                        </tr>
-                    </table>
-                </button>
-            </li>
-            */
-
-            log("addi");
-
             if let Some(btn) = doc.get_element_by_id(&game.id.to_string()) {
-                log("these mofogas");
                 btn.query_selector(".connected")
                     .unwrap()
                     .unwrap()
                     .set_inner_html(&game.connected.to_string());
-                log("aint working");
                 btn.query_selector(".dimensions")
                     .unwrap()
                     .unwrap()
@@ -270,17 +227,14 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
                 let li = doc.create_element("li").unwrap();
                 li.set_inner_html(
                     &format!(
-                        "<button id='{}' class='game-join-button' onclick='location.href=\"/#/game'\"><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{} / {}</td></tr><tr><td style='color: #bb9dbd'>dimensions:</td><td class='dimensions' style='color: #e0a363'>{} x {}</td></tr></table></button>", 
+                        "<button id='{}' class='game-join-button' onclick='location.href=\"/#/game\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{} / {}</td></tr><tr><td style='color: #bb9dbd'>dimensions:</td><td class='dimensions' style='color: #e0a363'>{} x {}</td></tr></table></button>", 
                         game.id, game.connected, game.player_cap, game.dimensions, game.dimensions,
                     )
                 );
-                log("omg");
                 doc.get_element_by_id("button-list")
                     .unwrap()
                     .append_child(&li)
                     .unwrap();
-
-                log("found");
             }
         }
     })

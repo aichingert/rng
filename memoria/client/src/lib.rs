@@ -1,5 +1,3 @@
-use wasm_bindgen::prelude::*;
-
 mod router;
 pub use router::{handle_location, route};
 

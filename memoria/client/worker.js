@@ -5,10 +5,10 @@ const {Communicator} = wasm_bindgen;
 async function worker_init() {
     await wasm_bindgen("./pkg/client_bg.wasm");
 
-    var comm = await Communicator.new();
+    let comm = await Communicator.new();
 
     while (true) {
-        var res = await comm.next();
+        let res = await comm.next();
         if (res == null) break;
         await self.postMessage(res);
     }
