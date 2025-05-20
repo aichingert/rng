@@ -17,6 +17,15 @@ tonic-web-wasm-client = "0.7.0"
 wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
 
+[dependencies.web-sys]
+features = [
+    "Window",
+    "Event",
+    "History",
+    "Location",
+    "HtmlAnchorElement",
+]
+version = "0.3.77"
 
 [build-dependencies]
 tonic-build = { version = "0.13", default-features = false, features = [
