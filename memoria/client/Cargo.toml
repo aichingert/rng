@@ -27,6 +27,7 @@ features = [
     "Document",
     "Worker",
     "MessageEvent",
+    "EventTarget",
     "HtmlAnchorElement",
 ]
 version = "0.3.77"

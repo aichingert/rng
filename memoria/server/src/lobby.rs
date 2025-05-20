@@ -84,6 +84,7 @@ impl LobbyService for LobbyHandler {
             }
         };
 
+        println!("{}", self.players.lock().await.len());
         self.players
             .lock()
             .await
