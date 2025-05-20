@@ -8,6 +8,7 @@ use std::{
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen_futures::{future_to_promise, js_sys};
 
 use tokio_stream::StreamExt;
 use tonic::{Status, Streaming};
@@ -76,32 +77,43 @@ struct ActiveGame {
 
 #[wasm_bindgen]
 pub struct Communicator {
-    stream: Streaming<crate::LobbyReply>,
+    stream: Arc<Mutex<Streaming<crate::LobbyReply>>>,
 }
+
 #[wasm_bindgen]
 impl Communicator {
-    pub async fn new() -> Self {
-        let client = crate::Client::new(crate::URL.to_string());
-        let mut client = crate::LobbyServiceClient::new(client);
+    pub fn new() -> js_sys::Promise {
+        future_to_promise(async move {
+            let client = crate::Client::new(crate::URL.to_string());
+            let mut client = crate::LobbyServiceClient::new(client);
 
-        let stream = client
-            .register_to_lobby(crate::Empty {})
-            .await
-            .unwrap()
-            .into_inner();
+            let stream = client
+                .register_to_lobby(crate::Empty {})
+                .await
+                .unwrap()
+                .into_inner();
 
-        Self { stream }
+            Ok((Self {
+                stream: Arc::new(Mutex::new(stream)),
+            })
+            .into())
+        })
     }
 
-    pub async fn next(&mut self) -> JsValue {
-        let Some(Ok(rep)) = self.stream.next().await else {
-            return JsValue::NULL;
-        };
+    pub fn next(&mut self) -> js_sys::Promise {
+        let mut stream = Arc::clone(&self.stream);
 
-        JsValue::from_str(&format!(
-            "{}|{}|{}|{}",
-            rep.id, rep.connected, rep.player_cap, rep.dimensions
-        ))
+        future_to_promise(async move {
+            let Some(Ok(rep)) = stream.lock().unwrap().next().await else {
+                return Ok(JsValue::NULL.into());
+            };
+
+            Ok(JsValue::from_str(&format!(
+                "{}|{}|{}|{}",
+                rep.id, rep.connected, rep.player_cap, rep.dimensions
+            ))
+            .into())
+        })
     }
 }
 
@@ -117,39 +129,43 @@ impl Lobby {
             #[allow(unused_assignments)]
             let mut game_cb = get_game_update_cb();
 
+            let handle = &*worker.borrow();
+            handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
+            game_cb.forget();
+
             //handle.post_message(&0.into()).unwrap();
             //handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
 
             LOBBY.lock().unwrap().is_worker_init = true;
-
-            let cb = Closure::wrap(Box::new(move || {
-                let client = crate::Client::new(crate::URL.to_string());
-                let mut client = crate::LobbyServiceClient::new(client);
-
-                let handle = &*worker.borrow();
-                handle.post_message(&0.into()).unwrap();
-                game_cb = get_game_update_cb();
-                handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
-
-                wasm_bindgen_futures::spawn_local(async move {
-                    _ = client
-                        .create_game(crate::CreateRequest {
-                            player_cap: 3,
-                            dimensions: 10,
-                        })
-                        .await
-                        .unwrap();
-                })
-            }) as Box<dyn FnMut()>);
-
-            let btn = doc.get_element_by_id("create-game").unwrap();
-            btn.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
-                .unwrap();
-            cb.forget();
-
         }
 
-        
+        let cb = Closure::wrap(Box::new(move || {
+            let client = crate::Client::new(crate::URL.to_string());
+            let mut client = crate::LobbyServiceClient::new(client);
+
+            /*
+            let handle = &*worker.borrow();
+            handle.post_message(&0.into()).unwrap();
+            game_cb = get_game_update_cb();
+            handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
+            */
+
+            wasm_bindgen_futures::spawn_local(async move {
+                _ = client
+                    .create_game(crate::CreateRequest {
+                        player_cap: 3,
+                        dimensions: 10,
+                    })
+                    .await
+                    .unwrap();
+            })
+        }) as Box<dyn FnMut()>);
+
+        let btn = doc.get_element_by_id("create-game").unwrap();
+        btn.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+            .unwrap();
+        cb.forget();
+
         LOBBY.lock().unwrap().is_lobby_active = true;
     }
 }
@@ -160,14 +176,16 @@ extern "C" {
     fn log(s: &str);
 }
 
-
-
 fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
     Closure::new(move |event: web_sys::MessageEvent| {
         log("here");
         log("wtd fkajsdlfk asö");
 
-        let data = event.data().as_string().unwrap().split('|')
+        let data = event
+            .data()
+            .as_string()
+            .unwrap()
+            .split('|')
             .map(|n| n.parse::<u32>().unwrap())
             .collect::<Vec<_>>();
 
@@ -239,12 +257,12 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
 
             if let Some(btn) = doc.get_element_by_id(&game.id.to_string()) {
                 log("these mofogas");
-                btn.query_selector("connected")
+                btn.query_selector(".connected")
                     .unwrap()
                     .unwrap()
                     .set_inner_html(&game.connected.to_string());
                 log("aint working");
-                btn.query_selector("dimensions")
+                btn.query_selector(".dimensions")
                     .unwrap()
                     .unwrap()
                     .set_inner_html(&game.dimensions.to_string());
@@ -257,7 +275,8 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
                     )
                 );
                 log("omg");
-                doc.get_element_by_id("button-list").unwrap()
+                doc.get_element_by_id("button-list")
+                    .unwrap()
                     .append_child(&li)
                     .unwrap();
 
