@@ -1,5 +1,13 @@
+import init, { route, handle_location } from "./pkg/client.js";
 
+async function run() {
+    await init();
 
-export function print_hello(name) {
-    console.log(`hello ${name}`);
+    window.onpopstate = handle_location;
+    window.route = route;
 }
+
+run();
+
+
+
