@@ -14,4 +14,6 @@ pub use router::{handle_location, route};
 mod lobby;
 pub use lobby::Communicator;
 
+mod game;
+
 const URL: &str = "http://localhost:50051";

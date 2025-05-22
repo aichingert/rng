@@ -64,7 +64,7 @@ pub static LOBBY: LazyLock<Mutex<Lobby>> = LazyLock::new(|| {
 
 pub struct Lobby {
     is_worker_init: bool,
-    is_lobby_active: bool,
+    pub is_lobby_active: bool,
     active_games: HashMap<u32, ActiveGame>,
 }
 

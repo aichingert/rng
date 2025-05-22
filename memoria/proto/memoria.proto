@@ -9,6 +9,8 @@ service LobbyService {
 }
 
 service GameService {
+  rpc RejoinGame     (RejoinRequest)  returns (stream GameStateReply) {}
+  rpc MakeMove       (RevealRequest)  returns (Empty)                 {}
 }
 
 message Empty {}
@@ -31,10 +33,40 @@ message JoinRequest {
   uint32 id = 1;
 }
 
-message GameStateReply {
-  string message = 1;
+message RejoinRequest {
+  uint32 id = 1;
+  string player = 2;
 }
 
-message CreateReply {
-  bool success = 1;
+message KeyAssignment {
+  uint32 player_id  = 1;
+  string player_key = 2;
+}
+
+message ConnectionUpdate {
+  uint32 connected = 1;
+  uint32 player_cap = 2;
+}
+
+message PlayerMove {
+  uint32 revealX = 1;
+  uint32 revealY = 2;
+}
+
+message NextPlayer {
+  uint32 player_id = 1;
+}
+
+message GameStateReply {
+  oneof value {
+    KeyAssignment    ka = 1;
+    ConnectionUpdate cp = 2;
+    PlayerMove       pm = 3;
+    NextPlayer       np = 4;
+  }
+}
+
+message RevealRequest {
+  string player_key = 1;
+  PlayerMove move   = 2;
 }
