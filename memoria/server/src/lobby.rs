@@ -42,14 +42,13 @@ impl LobbyService for LobbyHandler {
     ) -> Result<Response<Self::RegisterToLobbyStream>, Status> {
         let (tx, rx) = mpsc::channel(128);
 
-        println!("requesti");
-
         for (id, game) in self.games_available.lock().await.iter() {
             let rep = LobbyReply {
                 id: *id,
+                width: game.width as u32,
+                height: game.height as u32,
                 connected: game.connected.len() as u32,
-                player_cap: game.player_cap,
-                dimensions: (game.width as u32) << 16 & (game.height as u32),
+                player_cap: game.player_cap as u32,
             };
 
             tx.send(Ok(rep)).await.unwrap();
@@ -67,9 +66,9 @@ impl LobbyService for LobbyHandler {
             let creq = req.into_inner();
             let mut cur = self.lobby_id.lock().await;
             let game = Game {
-                width: (creq.dimensions >> 16) as u16,
-                height: (0xffff0000 & creq.dimensions) as u16,
-                player_cap: creq.player_cap,
+                width: creq.width as u8,
+                height: creq.height as u8,
+                player_cap: creq.player_cap as u8,
                 connected: Vec::new(),
             };
 
@@ -78,13 +77,13 @@ impl LobbyService for LobbyHandler {
 
             LobbyReply {
                 id: *cur - 1,
-                connected: 0,
+                width: creq.width,
+                height: creq.height,
                 player_cap: creq.player_cap,
-                dimensions: creq.dimensions,
+                connected: 0,
             }
         };
 
-        println!("{}", self.players.lock().await.len());
         self.players
             .lock()
             .await
@@ -108,12 +107,13 @@ impl LobbyService for LobbyHandler {
 
         let mut rep = LobbyReply {
             id,
+            width: game.width as u32,
+            height: game.height as u32,
+            player_cap: game.player_cap as u32,
             connected: 0,
-            player_cap: game.player_cap,
-            dimensions: 0,
         };
 
-        if game.player_cap == game.connected.len() as u32 {
+        if game.player_cap == game.connected.len() as u8 {
             let game = avail_games.remove(&id).unwrap();
             self.games_in_progress.lock().await.insert(id, game);
             rep.connected = rep.player_cap;

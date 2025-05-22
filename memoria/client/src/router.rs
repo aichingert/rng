@@ -29,15 +29,19 @@ pub fn route(event: web_sys::Event) {
 #[wasm_bindgen]
 pub fn handle_location() {
     let path = web_sys::window().unwrap().location().href().unwrap();
-    let route = if let Some(p) = path.split('#').skip(1).next() {
-        p
+    let route: &[&str] = if let Some(p) = path.split('#').skip(1).next() {
+        &p.split('/').skip(1).collect::<Vec<_>>()
     } else {
-        ""
+        &[""]
     };
 
-    match route {
-        "" | "/" => Lobby::init(),
-        "game" => {}
+    log(&format!("{route:?}"));
+
+    match &route[..] {
+        [""] | ["/"] => Lobby::init(),
+        ["game", id] => {
+            log(&format!("{id:?}"));
+        }
         _ => {}
     }
 }

@@ -12,9 +12,9 @@ use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct Game {
-    pub width: u16,
-    pub height: u16,
-    pub player_cap: u32,
+    pub width: u8,
+    pub height: u8,
+    pub player_cap: u8,
     pub connected: Vec<Sender<Result<GameStateReply, Status>>>,
 }
 

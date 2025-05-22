@@ -68,11 +68,12 @@ pub struct Lobby {
     active_games: HashMap<u32, ActiveGame>,
 }
 
+#[derive(Clone)]
 struct ActiveGame {
-    width: u16,
-    height: u16,
-    connected: u32,
-    player_cap: u32,
+    width: u8,
+    height: u8,
+    connected: u8,
+    player_cap: u8,
 }
 
 #[wasm_bindgen]
@@ -109,8 +110,8 @@ impl Communicator {
             };
 
             Ok(JsValue::from_str(&format!(
-                "{}|{}|{}|{}",
-                rep.id, rep.connected, rep.player_cap, rep.dimensions
+                "{}|{}|{}|{}|{}",
+                rep.id, rep.width, rep.height, rep.connected, rep.player_cap,
             )))
         })
     }
@@ -141,7 +142,8 @@ impl Lobby {
                 _ = client
                     .create_game(crate::CreateRequest {
                         player_cap: 3,
-                        dimensions: 10,
+                        width: 5,
+                        height: 15,
                     })
                     .await
                     .unwrap();
@@ -153,14 +155,29 @@ impl Lobby {
             .unwrap();
         cb.forget();
 
+        LOBBY
+            .lock()
+            .unwrap()
+            .active_games
+            .iter()
+            .for_each(|(&id, game)| {
+                Lobby::append_game(id, game.connected, game.player_cap, game.width, game.height)
+                    .unwrap();
+            });
+
         LOBBY.lock().unwrap().is_lobby_active = true;
     }
-}
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
+    fn append_game(id: u32, connected: u8, player_cap: u8, width: u8, height: u8) -> Option<()> {
+        let doc = web_sys::window()?.document()?;
+        let li = doc.create_element("li").ok()?;
+        li.set_inner_html(&format!("<button id='{id}' class='game-join-button' onclick='location.href=\"/#/game/{id}\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{connected} / {player_cap}</td></tr><tr><td style='color: #bb9dbd'>dimension:</td><td class='dimensions' style='color: #e0a363'>{width} x {height}</td></tr></table></button>"));
+
+        doc.get_element_by_id("button-list")?
+            .append_child(&li)
+            .ok()?;
+        Some(())
+    }
 }
 
 fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
@@ -173,18 +190,19 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
             .map(|n| n.parse::<u32>().unwrap())
             .collect::<Vec<_>>();
 
-        let game = crate::LobbyReply {
-            id: data[0],
-            connected: data[1],
-            player_cap: data[2],
-            dimensions: data[3],
+        let id = data[0];
+        let game = ActiveGame {
+            width: data[1] as u8,
+            height: data[2] as u8,
+            connected: data[3] as u8,
+            player_cap: data[4] as u8,
         };
 
         if game.connected == game.player_cap {
-            LOBBY.lock().unwrap().active_games.remove(&game.id);
+            LOBBY.lock().unwrap().active_games.remove(&id);
 
             let doc = web_sys::window().unwrap().document().unwrap();
-            let Some(btn) = doc.get_element_by_id(&game.id.to_string()) else {
+            let Some(btn) = doc.get_element_by_id(&id.to_string()) else {
                 return;
             };
             let Ok(Some(uli)) = btn.closest("li") else {
@@ -194,27 +212,11 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
             return;
         }
 
-        if let Some(g) = LOBBY.lock().unwrap().active_games.get_mut(&game.id) {
-            g.width = (game.dimensions >> 16) as u16;
-            g.height = (0xffff0000 & game.dimensions) as u16;
-            g.connected = game.connected;
-        } else {
-            LOBBY
-                .lock()
-                .unwrap()
-                .active_games
-                .insert(game.id, ActiveGame {
-                    width: (game.dimensions >> 16) as u16,
-                    height: (0xffff0000 & game.dimensions) as u16,
-                    connected: game.connected,
-                    player_cap: game.player_cap,
-                });
-        }
-
+        LOBBY.lock().unwrap().active_games.insert(id, game.clone());
         if LOBBY.lock().unwrap().is_lobby_active {
             let doc = web_sys::window().unwrap().document().unwrap();
 
-            if let Some(btn) = doc.get_element_by_id(&game.id.to_string()) {
+            if let Some(btn) = doc.get_element_by_id(&id.to_string()) {
                 btn.query_selector(".connected")
                     .unwrap()
                     .unwrap()
@@ -222,18 +224,9 @@ fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
                 btn.query_selector(".dimensions")
                     .unwrap()
                     .unwrap()
-                    .set_inner_html(&game.dimensions.to_string());
+                    .set_inner_html(&format!("{} x {}", game.width, game.height));
             } else {
-                let li = doc.create_element("li").unwrap();
-                li.set_inner_html(
-                    &format!(
-                        "<button id='{}' class='game-join-button' onclick='location.href=\"/#/game\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{} / {}</td></tr><tr><td style='color: #bb9dbd'>dimensions:</td><td class='dimensions' style='color: #e0a363'>{} x {}</td></tr></table></button>", 
-                        game.id, game.connected, game.player_cap, game.dimensions, game.dimensions,
-                    )
-                );
-                doc.get_element_by_id("button-list")
-                    .unwrap()
-                    .append_child(&li)
+                Lobby::append_game(id, game.connected, game.player_cap, game.width, game.height)
                     .unwrap();
             }
         }

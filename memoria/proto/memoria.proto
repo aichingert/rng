@@ -15,14 +15,16 @@ message Empty {}
 
 message LobbyReply {
   uint32 id = 1;
-  uint32 connected = 2;
-  uint32 player_cap = 3;
-  uint32 dimensions = 4;
+  uint32 width = 2;
+  uint32 height = 3;
+  uint32 connected = 4;
+  uint32 player_cap = 5;
 }
 
 message CreateRequest {
-  uint32 player_cap = 1;
-  uint32 dimensions = 2;
+  uint32 width = 1;
+  uint32 height = 2;
+  uint32 player_cap = 3;
 }
 
 message JoinRequest {
