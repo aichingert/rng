@@ -1,14 +1,8 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast, JsValue};
 
-use crate::lobby::{Lobby, LOBBY};
 use crate::game::Game;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
+use crate::lobby::{LOBBY, Lobby};
 
 #[wasm_bindgen]
 pub fn route(event: web_sys::Event) {
@@ -35,8 +29,6 @@ pub fn handle_location() {
     } else {
         &[""]
     };
-
-    log(&format!("{route:?}"));
 
     LOBBY.lock().unwrap().is_lobby_active = false;
     match &route[..] {
