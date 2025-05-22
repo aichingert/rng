@@ -10,7 +10,8 @@ pub mod memoria {
 }
 
 pub use memoria::{
-    CreateReply, CreateRequest, Empty, GameStateReply, JoinRequest, LobbyReply,
+    CreateRequest, Empty, GameStateReply, JoinRequest, RejoinRequest, 
+    LobbyReply, RevealRequest,
     game_service_server::{GameService, GameServiceServer},
     lobby_service_server::{LobbyService, LobbyServiceServer},
 };
