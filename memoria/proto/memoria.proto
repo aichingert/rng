@@ -59,10 +59,10 @@ message NextPlayer {
 
 message GameStateReply {
   oneof value {
-    KeyAssignment    ka = 1;
-    ConnectionUpdate cp = 2;
-    PlayerMove       pm = 3;
-    NextPlayer       np = 4;
+    KeyAssignment    key_assignment    = 1;
+    ConnectionUpdate connection_update = 2;
+    PlayerMove       player_move       = 3;
+    NextPlayer       next_player       = 4;
   }
 }
 

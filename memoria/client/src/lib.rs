@@ -5,7 +5,8 @@ pub mod memoria {
 }
 pub use memoria::{
     CreateRequest, Empty, GameStateReply, JoinRequest, LobbyReply, RejoinRequest,
-    game_service_client::GameServiceClient, lobby_service_client::LobbyServiceClient,
+    game_service_client::GameServiceClient, game_state_reply::Value,
+    lobby_service_client::LobbyServiceClient,
 };
 
 mod router;

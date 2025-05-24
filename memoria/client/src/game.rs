@@ -52,10 +52,10 @@ impl GameStream {
 
         future_to_promise(async move {
             let Some(Ok(rep)) = stream.lock().unwrap().next().await else {
-                return Ok(JsValue::NULL.into());
+                return Ok(JsValue::NULL);
             };
 
-            Ok(JsValue::from_str(&format!("ha {}", "llo")))
+            Ok(serde_wasm_bindgen::to_value(&rep)?)
         })
     }
 }
@@ -69,9 +69,10 @@ impl Game {
         let app = doc.get_element_by_id("app").unwrap();
         app.set_inner_html(TEMPLATE);
 
+        let game_cb = Self::get_game_update_cb();
         let worker = web_sys::Worker::new("./game_worker.js").unwrap();
-        //worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
-        //game_cb.forget();
+        worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
+        game_cb.forget();
 
         let array = js_sys::Array::new();
         array.push(&JsValue::from(id.parse::<u32>().unwrap()));
@@ -91,5 +92,22 @@ impl Game {
         let key = store.get_item(PLAYER_KEY).ok()??;
 
         Some((id, key))
+    }
+
+    fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
+        Closure::new(move |event: web_sys::MessageEvent| {
+            let rep: crate::GameStateReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
+
+            let Some(vals) = rep.value else {
+                return;
+            };
+
+            match vals {
+                crate::Value::KeyAssignment(_) => {}
+                crate::Value::ConnectionUpdate(_) => {}
+                crate::Value::PlayerMove(_) => {}
+                crate::Value::NextPlayer(_) => todo!(),
+            }
+        })
     }
 }

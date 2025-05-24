@@ -102,10 +102,7 @@ impl LobbyStream {
                 return Ok(JsValue::NULL.into());
             };
 
-            Ok(JsValue::from_str(&format!(
-                "{}|{}|{}|{}|{}",
-                rep.id, rep.width, rep.height, rep.connected, rep.player_cap,
-            )))
+            Ok(serde_wasm_bindgen::to_value(&rep)?)
         })
     }
 }
@@ -117,11 +114,11 @@ impl Lobby {
         app.set_inner_html(TEMPLATE);
 
         if !LOBBY.lock().unwrap().is_worker_init {
-            let game_cb = get_lobby_update_cb();
+            let lobby_cb = Self::get_lobby_update_cb();
 
             let worker = web_sys::Worker::new("./lobby_worker.js").unwrap();
-            worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
-            game_cb.forget();
+            worker.set_onmessage(Some(lobby_cb.as_ref().unchecked_ref()));
+            lobby_cb.forget();
 
             LOBBY.lock().unwrap().is_worker_init = true;
         }
@@ -170,57 +167,55 @@ impl Lobby {
             .ok()?;
         Some(())
     }
-}
 
-fn get_lobby_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
-    Closure::new(move |event: web_sys::MessageEvent| {
-        let data = event
-            .data()
-            .as_string()
-            .unwrap()
-            .split('|')
-            .map(|n| n.parse::<u32>().unwrap())
-            .collect::<Vec<_>>();
-
-        let id = data[0];
-        let game = ActiveGame {
-            width: data[1] as u8,
-            height: data[2] as u8,
-            connected: data[3] as u8,
-            player_cap: data[4] as u8,
-        };
-
-        if game.connected == game.player_cap {
-            LOBBY.lock().unwrap().active_games.remove(&id);
-
-            let doc = web_sys::window().unwrap().document().unwrap();
-            let Some(btn) = doc.get_element_by_id(&id.to_string()) else {
-                return;
+    fn get_lobby_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
+        Closure::new(move |event: web_sys::MessageEvent| {
+            let data: crate::LobbyReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
+            let game = ActiveGame {
+                width: data.width as u8,
+                height: data.height as u8,
+                connected: data.connected as u8,
+                player_cap: data.player_cap as u8,
             };
-            let Ok(Some(uli)) = btn.closest("li") else {
+
+            if game.connected == game.player_cap {
+                LOBBY.lock().unwrap().active_games.remove(&data.id);
+
+                let doc = web_sys::window().unwrap().document().unwrap();
+                let Some(btn) = doc.get_element_by_id(&data.id.to_string()) else {
+                    return;
+                };
+                let Ok(Some(uli)) = btn.closest("li") else {
+                    return;
+                };
+                uli.remove();
                 return;
-            };
-            uli.remove();
-            return;
-        }
-
-        LOBBY.lock().unwrap().active_games.insert(id, game.clone());
-        if LOBBY.lock().unwrap().is_lobby_active {
-            let doc = web_sys::window().unwrap().document().unwrap();
-
-            if let Some(btn) = doc.get_element_by_id(&id.to_string()) {
-                btn.query_selector(".connected")
-                    .unwrap()
-                    .unwrap()
-                    .set_inner_html(&game.connected.to_string());
-                btn.query_selector(".dimensions")
-                    .unwrap()
-                    .unwrap()
-                    .set_inner_html(&format!("{} x {}", game.width, game.height));
-            } else {
-                Lobby::append_game(id, game.connected, game.player_cap, game.width, game.height)
-                    .unwrap();
             }
-        }
-    })
+
+            LOBBY.lock().unwrap().active_games.insert(data.id, game);
+            if LOBBY.lock().unwrap().is_lobby_active {
+                let doc = web_sys::window().unwrap().document().unwrap();
+
+                if let Some(btn) = doc.get_element_by_id(&data.id.to_string()) {
+                    btn.query_selector(".connected")
+                        .unwrap()
+                        .unwrap()
+                        .set_inner_html(&data.connected.to_string());
+                    btn.query_selector(".dimensions")
+                        .unwrap()
+                        .unwrap()
+                        .set_inner_html(&format!("{} x {}", data.width, data.height));
+                } else {
+                    Lobby::append_game(
+                        data.id,
+                        data.connected as u8,
+                        data.player_cap as u8,
+                        data.width as u8,
+                        data.height as u8,
+                    )
+                    .unwrap();
+                }
+            }
+        })
+    }
 }
