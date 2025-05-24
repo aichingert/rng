@@ -70,20 +70,25 @@ impl Game {
         app.set_inner_html(TEMPLATE);
 
         let game_cb = Self::get_game_update_cb();
+
+        // TODO: make this an rc::refcell so it can be passed to a callback which
+        // gets called to terminate the worker
         let worker = web_sys::Worker::new("./game_worker.js").unwrap();
         worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
         game_cb.forget();
-
-        let array = js_sys::Array::new();
-        array.push(&JsValue::from(id.parse::<u32>().unwrap()));
 
         let key = if let Some((_id, key)) = Game::check_cache(&win) {
             key
         } else {
             "".to_string()
         };
-        array.push(&JsValue::from_str(&key));
-        worker.post_message(&array).unwrap();
+
+        worker
+            .post_message(&js_sys::Array::of2(
+                &JsValue::from(id.parse::<u32>().unwrap()),
+                &JsValue::from_str(&key),
+            ))
+            .unwrap();
     }
 
     fn check_cache(win: &web_sys::Window) -> Option<(u32, String)> {

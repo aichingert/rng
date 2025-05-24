@@ -200,7 +200,7 @@ impl Lobby {
                     btn.query_selector(".connected")
                         .unwrap()
                         .unwrap()
-                        .set_inner_html(&data.connected.to_string());
+                        .set_inner_html(&format!("{} / {}", data.connected, data.player_cap));
                     btn.query_selector(".dimensions")
                         .unwrap()
                         .unwrap()
