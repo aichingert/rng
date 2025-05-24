@@ -1,7 +1,5 @@
 use std::{
-    cell::RefCell,
     collections::HashMap,
-    rc::Rc,
     sync::{Arc, LazyLock, Mutex},
 };
 
@@ -77,12 +75,10 @@ struct ActiveGame {
 }
 
 #[wasm_bindgen]
-pub struct Communicator {
-    stream: Arc<Mutex<Streaming<crate::LobbyReply>>>,
-}
+pub struct LobbyStream(Arc<Mutex<Streaming<crate::LobbyReply>>>);
 
 #[wasm_bindgen]
-impl Communicator {
+impl LobbyStream {
     pub fn new() -> js_sys::Promise {
         future_to_promise(async move {
             let client = crate::Client::new(crate::URL.to_string());
@@ -94,15 +90,12 @@ impl Communicator {
                 .unwrap()
                 .into_inner();
 
-            Ok((Self {
-                stream: Arc::new(Mutex::new(stream)),
-            })
-            .into())
+            Ok((Self(Arc::new(Mutex::new(stream)))).into())
         })
     }
 
     pub fn next(&mut self) -> js_sys::Promise {
-        let stream = Arc::clone(&self.stream);
+        let stream = Arc::clone(&self.0);
 
         future_to_promise(async move {
             let Some(Ok(rep)) = stream.lock().unwrap().next().await else {
@@ -124,11 +117,10 @@ impl Lobby {
         app.set_inner_html(TEMPLATE);
 
         if !LOBBY.lock().unwrap().is_worker_init {
-            let worker = Rc::new(RefCell::new(web_sys::Worker::new("./worker.js").unwrap()));
-            let game_cb = get_game_update_cb();
+            let game_cb = get_lobby_update_cb();
 
-            let handle = &*worker.borrow();
-            handle.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
+            let worker = web_sys::Worker::new("./lobby_worker.js").unwrap();
+            worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
             game_cb.forget();
 
             LOBBY.lock().unwrap().is_worker_init = true;
@@ -180,7 +172,7 @@ impl Lobby {
     }
 }
 
-fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
+fn get_lobby_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
     Closure::new(move |event: web_sys::MessageEvent| {
         let data = event
             .data()

@@ -4,15 +4,15 @@ pub mod memoria {
     tonic::include_proto!("memoria");
 }
 pub use memoria::{
-    CreateRequest, Empty, LobbyReply, game_service_client::GameServiceClient,
-    lobby_service_client::LobbyServiceClient,
+    CreateRequest, Empty, GameStateReply, JoinRequest, LobbyReply, RejoinRequest,
+    game_service_client::GameServiceClient, lobby_service_client::LobbyServiceClient,
 };
 
 mod router;
 pub use router::{handle_location, route};
 
 mod lobby;
-pub use lobby::Communicator;
+pub use lobby::LobbyStream;
 
 mod game;
 

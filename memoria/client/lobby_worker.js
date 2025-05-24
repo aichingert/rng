@@ -1,20 +1,16 @@
 importScripts("./pkg/client.js");
 
-const {Communicator} = wasm_bindgen;
+const {LobbyStream} = wasm_bindgen;
 
 async function worker_init() {
     await wasm_bindgen("./pkg/client_bg.wasm");
 
-    let comm = await Communicator.new();
+    let stream = await LobbyStream.new();
 
     while (true) {
-        let res = await comm.next();
+        let res = await stream.next();
         if (res == null) break;
         await self.postMessage(res);
-    }
-
-    self.onerror = function(event) {
-        console.error("ERROR: ", event);
     }
 }
 

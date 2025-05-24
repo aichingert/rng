@@ -28,6 +28,7 @@ features = [
     "Worker",
     "MessageEvent",
     "EventTarget",
+    "Storage",
     "HtmlElement",
     "HtmlAnchorElement",
 ]

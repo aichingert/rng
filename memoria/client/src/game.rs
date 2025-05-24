@@ -1,5 +1,13 @@
 use std::sync::{Arc, LazyLock, Mutex};
 
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen_futures::{future_to_promise, js_sys};
+
+use tokio_stream::StreamExt;
+use tonic::Streaming;
+
 const TEMPLATE: &str = r#"
 <h1># Game</h1>
 
@@ -14,25 +22,74 @@ const PLAYER_KEY: &str = "CONNECTION_ID";
 
 pub static GAME: LazyLock<Mutex<Game>> = LazyLock::new(|| Mutex::new(Game {}));
 
+#[wasm_bindgen]
+pub struct GameStream(Arc<Mutex<Streaming<crate::GameStateReply>>>);
+
+#[wasm_bindgen]
+impl GameStream {
+    pub fn new(id: u32, key: String) -> js_sys::Promise {
+        future_to_promise(async move {
+            let client = crate::Client::new(crate::URL.to_string());
+
+            let stream = if !key.is_empty() {
+                crate::GameServiceClient::new(client)
+                    .rejoin_game(crate::RejoinRequest { id, player: key })
+                    .await
+            } else {
+                crate::LobbyServiceClient::new(client)
+                    .join_game(crate::JoinRequest { id })
+                    .await
+            }
+            .map_err(|s| JsValue::from_str(s.message()))?
+            .into_inner();
+
+            Ok((Self(Arc::new(Mutex::new(stream)))).into())
+        })
+    }
+
+    pub fn next(&mut self) -> js_sys::Promise {
+        let stream = Arc::clone(&self.0);
+
+        future_to_promise(async move {
+            let Some(Ok(rep)) = stream.lock().unwrap().next().await else {
+                return Ok(JsValue::NULL.into());
+            };
+
+            Ok(JsValue::from_str(&format!("ha {}", "llo")))
+        })
+    }
+}
+
 pub struct Game {}
 
 impl Game {
     pub fn init(id: &str) {
-        let doc = web_sys::window().unwrap().document().unwrap();
+        let win = web_sys::window().unwrap();
+        let doc = win.document().unwrap();
         let app = doc.get_element_by_id("app").unwrap();
         app.set_inner_html(TEMPLATE);
 
-        if let Ok(Some(store)) = web_sys::window().unwrap().local_storage() {
-            if let Ok(Some(value)) = store.get_item(PLAYER_KEY) {
-                // TODO: read key
-                // set in global game instance
-                // continue to call rejoin game
-                // -> answers with game finished or new stream instance
-                // or call join game -> which will give you a player key as well as the position
+        let worker = web_sys::Worker::new("./game_worker.js").unwrap();
+        //worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
+        //game_cb.forget();
 
-                // if nothing set in local storage and join game does not recognise this game
-                // update page with game not found invalid game id
-            }
-        }
+        let array = js_sys::Array::new();
+        array.push(&JsValue::from(id.parse::<u32>().unwrap()));
+
+        let key = if let Some((_id, key)) = Game::check_cache(&win) {
+            key
+        } else {
+            "".to_string()
+        };
+        array.push(&JsValue::from_str(&key));
+        worker.post_message(&array).unwrap();
+    }
+
+    fn check_cache(win: &web_sys::Window) -> Option<(u32, String)> {
+        let store = win.local_storage().ok()??;
+        let id = store.get_item(PLAYER_ID).ok()??.parse::<u32>().ok()?;
+        let key = store.get_item(PLAYER_KEY).ok()??;
+
+        Some((id, key))
     }
 }
