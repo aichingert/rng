@@ -128,7 +128,6 @@ impl LobbyService for LobbyHandler {
                 .is_ok()
             });
 
-
             LobbyReply {
                 id,
                 width: game.width as u32,

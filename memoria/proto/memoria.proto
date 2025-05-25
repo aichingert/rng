@@ -61,12 +61,14 @@ message GameStateReply {
   oneof value {
     KeyAssignment    key_assignment    = 1;
     ConnectionUpdate connection_update = 2;
-    PlayerMove       player_move       = 3;
-    NextPlayer       next_player       = 4;
+    NextPlayer       next_player       = 3;
+    PlayerMove       player_revealed   = 4;
   }
 }
 
 message RevealRequest {
-  string player_key = 1;
-  PlayerMove move   = 2;
+  uint32 id         = 1;
+  string player_key = 2;
+  PlayerMove p_move = 3;
 }
+

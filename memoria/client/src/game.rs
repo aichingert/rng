@@ -117,7 +117,7 @@ impl Game {
             match vals {
                 crate::Value::KeyAssignment(_) => {}
                 crate::Value::ConnectionUpdate(new) => Self::update_connection(new).unwrap(),
-                crate::Value::PlayerMove(_) => {}
+                crate::Value::PlayerRevealed(_) => {}
                 crate::Value::NextPlayer(_) => todo!(),
             }
         })
