@@ -116,7 +116,7 @@ impl Lobby {
         if !LOBBY.lock().unwrap().is_worker_init {
             let lobby_cb = Self::get_lobby_update_cb();
 
-            let worker = web_sys::Worker::new("./lobby_worker.js").unwrap();
+            let worker = web_sys::Worker::new("./worker_lobby.js").unwrap();
             worker.set_onmessage(Some(lobby_cb.as_ref().unchecked_ref()));
             lobby_cb.forget();
 
@@ -131,8 +131,8 @@ impl Lobby {
                 _ = client
                     .create_game(crate::CreateRequest {
                         player_cap: 3,
-                        width: 5,
-                        height: 15,
+                        width: 10,
+                        height: 3,
                     })
                     .await
                     .unwrap();

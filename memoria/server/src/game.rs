@@ -3,6 +3,11 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::*;
+
+use rand::Rng;
+use rand::thread_rng;
+use rand::prelude::SliceRandom;
+
 use tokio::sync::{
     Mutex,
     mpsc::{self, Sender},
@@ -16,6 +21,33 @@ pub struct Game {
     pub height: u8,
     pub player_cap: u8,
     pub connected: Vec<Sender<Result<GameStateReply, Status>>>,
+
+    player: usize,
+    memory: Vec<u16>,
+}
+
+impl Game {
+    pub fn new(width: u8, height: u8, player_cap: u8) -> Self {
+        let mut rng = thread_rng();
+        let cap = (width as u16) * (height as u16);
+        let mut memory = Vec::with_capacity(cap as usize);
+
+        for i in (2..=cap).step_by(2) {
+            memory.push(i / 2);
+            memory.push(i / 2);
+        }
+
+        memory.shuffle(&mut rng);
+
+        Self {
+            width,
+            height,
+            player_cap,
+            memory,
+            player: rng.gen_range(1..=2),
+            connected: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug)]

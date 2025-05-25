@@ -77,12 +77,11 @@ impl LobbyService for LobbyHandler {
 
             self.games_available.lock().await.insert(
                 *cur,
-                Arc::new(Mutex::new(Game {
-                    width: req.width as u8,
-                    height: req.height as u8,
-                    player_cap: req.player_cap as u8,
-                    connected: Vec::new(),
-                })),
+                Arc::new(Mutex::new(Game::new(
+                    req.width as u8,
+                    req.height as u8,
+                    req.player_cap as u8,
+                ))),
             );
             *cur += 1;
 
@@ -129,12 +128,13 @@ impl LobbyService for LobbyHandler {
                 .is_ok()
             });
 
+
             LobbyReply {
                 id,
                 width: game.width as u32,
                 height: game.height as u32,
                 player_cap: cap,
-                connected: len,
+                connected: game.connected.len() as u32,
             }
         };
 

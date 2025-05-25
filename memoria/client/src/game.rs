@@ -73,7 +73,7 @@ impl Game {
 
         // TODO: make this an rc::refcell so it can be passed to a callback which
         // gets called to terminate the worker
-        let worker = web_sys::Worker::new("./game_worker.js").unwrap();
+        let worker = web_sys::Worker::new("./worker_game.js").unwrap();
         worker.set_onmessage(Some(game_cb.as_ref().unchecked_ref()));
         game_cb.forget();
 
@@ -99,6 +99,13 @@ impl Game {
         Some((id, key))
     }
 
+    fn update_connection(new: crate::ConnectionUpdate) -> Option<()> {
+        let doc = web_sys::window()?.document()?;
+        let con = doc.get_element_by_id("waiting")?;
+        con.set_inner_html(&format!("{} / {}", new.connected, new.player_cap));
+        Some(())
+    }
+
     fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
         Closure::new(move |event: web_sys::MessageEvent| {
             let rep: crate::GameStateReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
@@ -109,7 +116,7 @@ impl Game {
 
             match vals {
                 crate::Value::KeyAssignment(_) => {}
-                crate::Value::ConnectionUpdate(_) => {}
+                crate::Value::ConnectionUpdate(new) => Self::update_connection(new).unwrap(),
                 crate::Value::PlayerMove(_) => {}
                 crate::Value::NextPlayer(_) => todo!(),
             }
