@@ -20,7 +20,7 @@ pub struct Game {
 
 #[derive(Debug)]
 pub struct GameHandler {
-    pub games_in_progress: Arc<Mutex<HashMap<u32, Game>>>,
+    pub games_in_progress: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>,
 }
 
 impl GameHandler {

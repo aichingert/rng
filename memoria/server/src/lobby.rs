@@ -14,14 +14,14 @@ use tonic::{Request, Response, Status};
 pub struct LobbyHandler {
     lobby_id: Arc<Mutex<u32>>,
     players: Arc<Mutex<Vec<Sender<Result<LobbyReply, Status>>>>>,
-    games_available: Arc<Mutex<HashMap<u32, Game>>>,
+    games_available: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>,
 
     // shared with game
-    games_in_progress: Arc<Mutex<HashMap<u32, Game>>>,
+    games_in_progress: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>,
 }
 
 impl LobbyHandler {
-    pub fn new(games_in_progress: Arc<Mutex<HashMap<u32, Game>>>) -> Self {
+    pub fn new(games_in_progress: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>) -> Self {
         Self {
             lobby_id: Arc::new(Mutex::new(1)),
             players: Arc::new(Mutex::new(Vec::new())),
@@ -43,6 +43,8 @@ impl LobbyService for LobbyHandler {
         let (tx, rx) = mpsc::channel(128);
 
         for (id, game) in self.games_available.lock().await.iter() {
+            let game = game.lock().await;
+
             let rep = LobbyReply {
                 id: *id,
                 width: game.width as u32,
@@ -62,24 +64,33 @@ impl LobbyService for LobbyHandler {
     }
 
     async fn create_game(&self, req: Request<CreateRequest>) -> Result<Response<Empty>, Status> {
-        let rep = {
-            let creq = req.into_inner();
-            let mut cur = self.lobby_id.lock().await;
-            let game = Game {
-                width: creq.width as u8,
-                height: creq.height as u8,
-                player_cap: creq.player_cap as u8,
-                connected: Vec::new(),
-            };
+        let req = req.into_inner();
+        if req.width * req.height % 2 != 0 {
+            return Err(Status::new(
+                400.into(),
+                "Err: cannot create memorie with odd pairs",
+            ));
+        }
 
-            self.games_available.lock().await.insert(*cur, game);
+        let rep = {
+            let mut cur = self.lobby_id.lock().await;
+
+            self.games_available.lock().await.insert(
+                *cur,
+                Arc::new(Mutex::new(Game {
+                    width: req.width as u8,
+                    height: req.height as u8,
+                    player_cap: req.player_cap as u8,
+                    connected: Vec::new(),
+                })),
+            );
             *cur += 1;
 
             LobbyReply {
                 id: *cur - 1,
-                width: creq.width,
-                height: creq.height,
-                player_cap: creq.player_cap,
+                width: req.width,
+                height: req.height,
+                player_cap: req.player_cap,
                 connected: 0,
             }
         };
@@ -103,22 +114,36 @@ impl LobbyService for LobbyHandler {
         };
 
         let (tx, rx) = mpsc::channel(128);
-        game.connected.push(tx);
+        let rep = {
+            let mut game = game.lock().await;
+            game.connected.push(tx);
+            let (cap, len) = (game.player_cap as u32, game.connected.len() as u32);
 
-        let mut rep = LobbyReply {
-            id,
-            width: game.width as u32,
-            height: game.height as u32,
-            player_cap: game.player_cap as u32,
-            connected: 0,
+            game.connected.retain(|p| {
+                p.try_send(Ok(GameStateReply {
+                    value: Some(Value::ConnectionUpdate(ConnectionUpdate {
+                        player_cap: cap,
+                        connected: len,
+                    })),
+                }))
+                .is_ok()
+            });
+
+            LobbyReply {
+                id,
+                width: game.width as u32,
+                height: game.height as u32,
+                player_cap: cap,
+                connected: len,
+            }
         };
 
-        if game.player_cap == game.connected.len() as u8 {
-            let game = avail_games.remove(&id).unwrap();
+        if rep.player_cap == rep.connected {
+            let Some(game) = avail_games.remove(&id) else {
+                return Err(Status::not_found("game not available"));
+            };
+
             self.games_in_progress.lock().await.insert(id, game);
-            rep.connected = rep.player_cap;
-        } else {
-            rep.connected = game.connected.len() as u32;
         }
 
         self.players
