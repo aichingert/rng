@@ -12,6 +12,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "#[derive(serde::Deserialize, serde::Serialize)]",
         )
         .type_attribute(
+            "BoardState",
+            "#[derive(serde::Deserialize, serde::Serialize)]",
+        )
+        .type_attribute("Card", "#[derive(serde::Deserialize, serde::Serialize)]")
+        .type_attribute(
             "ConnectionUpdate",
             "#[derive(serde::Deserialize, serde::Serialize)]",
         )

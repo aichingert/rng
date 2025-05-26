@@ -4,7 +4,7 @@ pub mod memoria {
     tonic::include_proto!("memoria");
 }
 pub use memoria::{
-    CreateRequest, Empty, GameStateReply, JoinRequest, LobbyReply, RejoinRequest, ConnectionUpdate,
+    ConnectionUpdate, CreateRequest, Empty, GameStateReply, JoinRequest, LobbyReply, RejoinRequest,
     game_service_client::GameServiceClient, game_state_reply::Value,
     lobby_service_client::LobbyServiceClient,
 };

@@ -21,14 +21,14 @@ pub struct Game {
 
     player: u8,
     memory: Vec<u16>,
-    hidden: Vec<bool>, 
+    hidden: Vec<bool>,
     revealed: Option<u16>,
 }
 
 impl Game {
     pub fn new(pairs: u8, player_cap: u8) -> Self {
         let mut rng = rng();
-        let cap = (pairs as u16) * 2; 
+        let cap = (pairs as u16) * 2;
         let mut memory = Vec::with_capacity(cap as usize);
 
         for i in (2..=cap).step_by(2) {
@@ -46,6 +46,24 @@ impl Game {
             revealed: None,
             connected: Vec::new(),
         }
+    }
+
+    // TODO: return bool indicating game start failed
+    pub fn start(&mut self) {
+        self.connected.retain(|p| {
+            p.try_send(Ok(GameStateReply {
+                value: Some(Value::KeyAssignment(KeyAssignment {
+                    // TODO: set keys and pos
+                    player_id: 0,
+                    player_key: "".to_string(),
+                    state: Some(BoardState {
+                        pairs: self.pairs as u32,
+                        cards: Vec::with_capacity(0),
+                    }),
+                })),
+            }))
+            .is_ok()
+        });
     }
 
     #[inline(always)]

@@ -130,7 +130,7 @@ impl Lobby {
                 _ = client
                     .create_game(crate::CreateRequest {
                         pairs: 12,
-                        player_cap: 3,
+                        player_cap: 2,
                     })
                     .await
                     .unwrap();
@@ -157,7 +157,7 @@ impl Lobby {
     fn append_game(id: u32, connected: u8, player_cap: u8, pairs: u8) -> Option<()> {
         let doc = web_sys::window()?.document()?;
         let li = doc.create_element("li").ok()?;
-        li.set_inner_html(&format!("<button id='{id}' class='game-join-button' onclick='location.href=\"/#/game/{id}\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{connected} / {player_cap}</td></tr><tr><td style='color: #bb9dbd'>dimension:</td><td class='dimensions' style='color: #e0a363'>{pairs}</td></tr></table></button>"));
+        li.set_inner_html(&format!("<button id='{id}' class='game-join-button' onclick='location.href=\"/#/game/{id}\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>pairs:</td><td class='pairs' style='color: #e0a363'>{pairs}</td></tr><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{connected} / {player_cap}</td></tr></table></button>"));
 
         doc.get_element_by_id("button-list")?
             .append_child(&li)
@@ -193,14 +193,14 @@ impl Lobby {
                 let doc = web_sys::window().unwrap().document().unwrap();
 
                 if let Some(btn) = doc.get_element_by_id(&data.id.to_string()) {
+                    btn.query_selector(".pairs")
+                        .unwrap()
+                        .unwrap()
+                        .set_inner_html(&data.pairs.to_string());
                     btn.query_selector(".connected")
                         .unwrap()
                         .unwrap()
                         .set_inner_html(&format!("{} / {}", data.connected, data.player_cap));
-                    btn.query_selector(".dimensions")
-                        .unwrap()
-                        .unwrap()
-                        .set_inner_html(&data.pairs.to_string());
                 } else {
                     Lobby::append_game(
                         data.id,

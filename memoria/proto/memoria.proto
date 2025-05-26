@@ -36,9 +36,20 @@ message RejoinRequest {
   string player = 2;
 }
 
+message Card {
+  uint32 value = 1;
+  uint32 index = 2;
+}
+
+message BoardState {
+  uint32 pairs = 1;
+  repeated Card cards = 2;
+}
+
 message KeyAssignment {
   uint32 player_id  = 1;
   string player_key = 2;
+  BoardState state  = 3;
 }
 
 message ConnectionUpdate {
@@ -56,6 +67,7 @@ message GameStateReply {
     ConnectionUpdate connection_update = 2;
     NextPlayer       next_player       = 3;
     uint32           player_revealed   = 4;
+    BoardState       current_board     = 5;
   }
 }
 

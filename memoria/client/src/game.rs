@@ -11,7 +11,7 @@ use tonic::Streaming;
 const TEMPLATE: &str = r#"
 <h1># Game</h1>
 
-<div style="display: flex; justify-content: center; font-size: 30px; padding: 20px">
+<div id="game_field" style="display: flex; justify-content: center; font-size: 30px; padding: 20px">
     <p style="color: #bb9dbd; padding-right: 5px">Waiting for players:</p>
     <p id="waiting" style="color: #e0a363"></p>
 </div>
@@ -106,6 +106,72 @@ impl Game {
         Some(())
     }
 
+    fn cleanup_and_create_cards(pairs: u32) -> Option<()> {
+        let doc = web_sys::window()?.document()?;
+
+        // TODO: mobile mayyybe
+        let game = doc.get_element_by_id("game_field")?;
+        game.set_inner_html("");
+
+        let memory = doc
+            .create_element("canvas")
+            .ok()?
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .ok()?;
+        memory.set_width(800);
+        memory.set_height(600);
+
+        game.append_child(&memory).ok()?;
+
+        wasm_bindgen_futures::spawn_local(async move {
+
+            let instance_descriptor = wgpu::InstanceDescriptor::default();
+            let instance = wgpu::util::new_instance_with_webgpu_detection(&instance_descriptor)
+                .await;
+
+            let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                ..Default::default()
+            }).await.expect("no adapter found");
+
+            // TODO: find out what's needed
+            let (device, queue) = adapter
+                .request_device(&wgpu::DeviceDescriptor::default())
+                .await
+                .expect("device creation failed");
+
+
+            /*
+            
+            let swap_chain_format = wgpu::TextureFormat::Bgra8UnormSrgb;
+            let swap_chain_descriptor = wgpu::SwapChainDescriptor {
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                format: swap_chain_format,
+                width: memory.width(),
+                height: memory.height(),
+                present_mode: wgpu::PresentMode::Fifo,
+            };
+            let swap_chain = device.create_swap_chain(&memory, &swap_chain_descriptor);
+
+            // Example: Render loop
+            loop {
+                let frame = swap_chain
+                    .get_current_frame()
+                    .await
+                    .expect("Failed to acquire next swap chain texture")
+                    .output;
+
+                // Here you would add your rendering code
+
+                // Present the frame
+                frame.present();
+            }
+            */
+        }); 
+
+        Some(())
+    }
+
     fn get_game_update_cb() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
         Closure::new(move |event: web_sys::MessageEvent| {
             let rep: crate::GameStateReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
@@ -115,10 +181,16 @@ impl Game {
             };
 
             match vals {
-                crate::Value::KeyAssignment(_) => {}
+                crate::Value::KeyAssignment(init) => {
+                    // TODO: set key and id in local storage
+
+                    let state = init.state.unwrap();
+                    Self::cleanup_and_create_cards(state.pairs).unwrap();
+                }
                 crate::Value::ConnectionUpdate(new) => Self::update_connection(new).unwrap(),
                 crate::Value::PlayerRevealed(_) => {}
                 crate::Value::NextPlayer(_) => todo!(),
+                crate::Value::CurrentBoard(_) => todo!(),
             }
         })
     }

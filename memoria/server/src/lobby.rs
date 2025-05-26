@@ -76,7 +76,7 @@ impl LobbyService for LobbyHandler {
 
             self.games_available.lock().await.insert(
                 *cur,
-                Arc::new(Mutex::new(Game::new(req.pairs as u8, req.player_cap as u8,))),
+                Arc::new(Mutex::new(Game::new(req.pairs as u8, req.player_cap as u8))),
             );
             *cur += 1;
 
@@ -135,6 +135,7 @@ impl LobbyService for LobbyHandler {
                 return Err(Status::not_found("game not available"));
             };
 
+            game.lock().await.start();
             self.games_in_progress.lock().await.insert(id, game);
         }
 
