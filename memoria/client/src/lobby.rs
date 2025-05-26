@@ -68,8 +68,7 @@ pub struct Lobby {
 
 #[derive(Clone)]
 struct ActiveGame {
-    width: u8,
-    height: u8,
+    pairs: u8,
     connected: u8,
     player_cap: u8,
 }
@@ -130,9 +129,8 @@ impl Lobby {
             wasm_bindgen_futures::spawn_local(async move {
                 _ = client
                     .create_game(crate::CreateRequest {
+                        pairs: 12,
                         player_cap: 3,
-                        width: 10,
-                        height: 3,
                     })
                     .await
                     .unwrap();
@@ -150,17 +148,16 @@ impl Lobby {
             .active_games
             .iter()
             .for_each(|(&id, game)| {
-                Lobby::append_game(id, game.connected, game.player_cap, game.width, game.height)
-                    .unwrap();
+                Lobby::append_game(id, game.connected, game.player_cap, game.pairs).unwrap();
             });
 
         LOBBY.lock().unwrap().is_lobby_active = true;
     }
 
-    fn append_game(id: u32, connected: u8, player_cap: u8, width: u8, height: u8) -> Option<()> {
+    fn append_game(id: u32, connected: u8, player_cap: u8, pairs: u8) -> Option<()> {
         let doc = web_sys::window()?.document()?;
         let li = doc.create_element("li").ok()?;
-        li.set_inner_html(&format!("<button id='{id}' class='game-join-button' onclick='location.href=\"/#/game/{id}\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{connected} / {player_cap}</td></tr><tr><td style='color: #bb9dbd'>dimension:</td><td class='dimensions' style='color: #e0a363'>{width} x {height}</td></tr></table></button>"));
+        li.set_inner_html(&format!("<button id='{id}' class='game-join-button' onclick='location.href=\"/#/game/{id}\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{connected} / {player_cap}</td></tr><tr><td style='color: #bb9dbd'>dimension:</td><td class='dimensions' style='color: #e0a363'>{pairs}</td></tr></table></button>"));
 
         doc.get_element_by_id("button-list")?
             .append_child(&li)
@@ -172,8 +169,7 @@ impl Lobby {
         Closure::new(move |event: web_sys::MessageEvent| {
             let data: crate::LobbyReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
             let game = ActiveGame {
-                width: data.width as u8,
-                height: data.height as u8,
+                pairs: data.pairs as u8,
                 connected: data.connected as u8,
                 player_cap: data.player_cap as u8,
             };
@@ -204,14 +200,13 @@ impl Lobby {
                     btn.query_selector(".dimensions")
                         .unwrap()
                         .unwrap()
-                        .set_inner_html(&format!("{} x {}", data.width, data.height));
+                        .set_inner_html(&data.pairs.to_string());
                 } else {
                     Lobby::append_game(
                         data.id,
                         data.connected as u8,
                         data.player_cap as u8,
-                        data.width as u8,
-                        data.height as u8,
+                        data.pairs as u8,
                     )
                     .unwrap();
                 }

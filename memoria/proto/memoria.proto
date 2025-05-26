@@ -17,16 +17,14 @@ message Empty {}
 
 message LobbyReply {
   uint32 id = 1;
-  uint32 width = 2;
-  uint32 height = 3;
-  uint32 connected = 4;
-  uint32 player_cap = 5;
+  uint32 pairs = 2;
+  uint32 connected = 3;
+  uint32 player_cap = 4;
 }
 
 message CreateRequest {
-  uint32 width = 1;
-  uint32 height = 2;
-  uint32 player_cap = 3;
+  uint32 pairs = 1;
+  uint32 player_cap = 2;
 }
 
 message JoinRequest {
@@ -48,11 +46,6 @@ message ConnectionUpdate {
   uint32 player_cap = 2;
 }
 
-message PlayerMove {
-  uint32 revealX = 1;
-  uint32 revealY = 2;
-}
-
 message NextPlayer {
   uint32 player_id = 1;
 }
@@ -62,13 +55,13 @@ message GameStateReply {
     KeyAssignment    key_assignment    = 1;
     ConnectionUpdate connection_update = 2;
     NextPlayer       next_player       = 3;
-    PlayerMove       player_revealed   = 4;
+    uint32           player_revealed   = 4;
   }
 }
 
 message RevealRequest {
   uint32 id         = 1;
-  string player_key = 2;
-  PlayerMove p_move = 3;
+  uint32 pos        = 2;
+  string player_key = 3;
 }
 

@@ -47,8 +47,7 @@ impl LobbyService for LobbyHandler {
 
             let rep = LobbyReply {
                 id: *id,
-                width: game.width as u32,
-                height: game.height as u32,
+                pairs: game.pairs as u32,
                 connected: game.connected.len() as u32,
                 player_cap: game.player_cap as u32,
             };
@@ -65,10 +64,10 @@ impl LobbyService for LobbyHandler {
 
     async fn create_game(&self, req: Request<CreateRequest>) -> Result<Response<Empty>, Status> {
         let req = req.into_inner();
-        if req.width * req.height % 2 != 0 {
+        if req.pairs > 250 {
             return Err(Status::new(
                 400.into(),
-                "Err: cannot create memorie with odd pairs",
+                "Err: cannot create memorie with more than 100 pairs",
             ));
         }
 
@@ -77,18 +76,13 @@ impl LobbyService for LobbyHandler {
 
             self.games_available.lock().await.insert(
                 *cur,
-                Arc::new(Mutex::new(Game::new(
-                    req.width as u8,
-                    req.height as u8,
-                    req.player_cap as u8,
-                ))),
+                Arc::new(Mutex::new(Game::new(req.pairs as u8, req.player_cap as u8,))),
             );
             *cur += 1;
 
             LobbyReply {
                 id: *cur - 1,
-                width: req.width,
-                height: req.height,
+                pairs: req.pairs,
                 player_cap: req.player_cap,
                 connected: 0,
             }
@@ -130,8 +124,7 @@ impl LobbyService for LobbyHandler {
 
             LobbyReply {
                 id,
-                width: game.width as u32,
-                height: game.height as u32,
+                pairs: game.pairs as u32,
                 player_cap: cap,
                 connected: game.connected.len() as u32,
             }
