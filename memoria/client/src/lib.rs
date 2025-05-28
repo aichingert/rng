@@ -5,7 +5,7 @@ pub mod memoria {
 }
 pub use memoria::{
     ConnectionUpdate, CreateRequest, Empty, GameStateReply, JoinRequest, LobbyReply, RejoinRequest,
-    game_service_client::GameServiceClient, game_state_reply::Value,
+    RevealRequest, game_service_client::GameServiceClient, game_state_reply::Value,
     lobby_service_client::LobbyServiceClient,
 };
 
