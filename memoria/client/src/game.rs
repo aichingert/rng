@@ -8,6 +8,14 @@ use wasm_bindgen_futures::{future_to_promise, js_sys};
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+
+
 const TEMPLATE: &str = r#"
 <h1># Game</h1>
 
@@ -112,58 +120,79 @@ impl Game {
         // TODO: mobile maybe
         let field = doc.get_element_by_id("game_field")?;
         let nodes = js_sys::Array::new();
+        field.replace_children_with_node(&nodes);
 
         for i in 0..(2 * pairs) {
             let closure = Closure::wrap(Box::new(move || {
                 let client = crate::Client::new(crate::URL.to_string());
+                let mut client = crate::GameServiceClient::new(client);
 
                 wasm_bindgen_futures::spawn_local(async move {
-                    crate::GameServiceClient::new(client)
-                        .make_move(crate::RevealRequest {
-                            id: id,
-                            pos: i,
-                            player_key: "".to_string(),
-                        })
-                        .await
-                        .expect("reveal request failed");
+                    let req = crate::RevealRequest {
+                        id: id,
+                        pos: i,
+                        player_key: "".to_string(),
+                    };
+                    let Err(e) = client.make_move(req).await else {
+                        return;
+                    };
+                    log(&e.to_string());
                 });
             }) as Box<dyn Fn()>);
 
+            let pos = i.to_string();
             let button = doc
                 .create_element("button")
                 .ok()?
                 .dyn_into::<web_sys::HtmlElement>()
                 .ok()?;
-            button.set_inner_html(&i.to_string());
+
+            button.set_id(&pos);
             button.set_onclick(Some(closure.as_ref().unchecked_ref()));
+            button.set_attribute("style", "width: 100px; height: 50px;").expect("err: btn style");
             closure.forget();
 
-            nodes.push(&button.into());
+            //nodes.push(&button.into());
+            field.append_child(&button).expect("err: append button");
         }
 
-        field.replace_children_with_node(&nodes);
+        Some(())
+    }
+
+    fn reveal_card(crate::BoardValue { pos, val }: crate::BoardValue) -> Option<()> {
+        let doc = web_sys::window()?.document()?;
+        doc.get_element_by_id(&pos.to_string())?.set_inner_html(&val.to_string());
+        Some(())
+    }
+
+    fn close_revealed_cards(crate::CloseCards { one, two }: crate::CloseCards) -> Option<()> {
+        let doc = web_sys::window()?.document()?;
+        doc.get_element_by_id(&one.to_string())?.set_inner_html("");
+        doc.get_element_by_id(&two.to_string())?.set_inner_html("");
         Some(())
     }
 
     fn get_game_update_cb(id: u32) -> Closure<dyn FnMut(web_sys::MessageEvent)> {
         Closure::new(move |event: web_sys::MessageEvent| {
             let rep: crate::GameStateReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
+            let val = rep.value.expect("a reply from the server");
 
-            let Some(vals) = rep.value else {
-                return;
-            };
-
-            match vals {
+            let res = match val {
                 crate::Value::KeyAssignment(init) => {
                     // TODO: set key and id in local storage
 
                     let state = init.state.unwrap();
-                    Self::cleanup_and_create_cards(id, state.pairs).unwrap();
+                    Self::cleanup_and_create_cards(id, state.pairs)
                 }
-                crate::Value::ConnectionUpdate(new) => Self::update_connection(new).unwrap(),
-                crate::Value::PlayerRevealed(_) => {}
-                crate::Value::NextPlayer(_) => todo!(),
-                crate::Value::CurrentBoard(_) => todo!(),
+                crate::Value::ConnectionUpdate(new) => Self::update_connection(new),
+                crate::Value::PlayerRevealed(value) => Self::reveal_card(value),
+                crate::Value::CloseRevealed(value) =>  Self::close_revealed_cards(value),
+                crate::Value::NextPlayer(_) => Some(()),
+                crate::Value::CurrentBoard(_) => Some(()),
+            };
+
+            if res.is_none() {
+                log("there was an error");
             }
         })
     }

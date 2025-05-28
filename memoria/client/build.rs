@@ -15,6 +15,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "BoardState",
             "#[derive(serde::Deserialize, serde::Serialize)]",
         )
+        .type_attribute(
+            "CloseCards",
+            "#[derive(serde::Deserialize, serde::Serialize)]",
+        )
+        .type_attribute(
+            "BoardValue",
+            "#[derive(serde::Deserialize, serde::Serialize)]",
+        )
         .type_attribute("Card", "#[derive(serde::Deserialize, serde::Serialize)]")
         .type_attribute(
             "ConnectionUpdate",

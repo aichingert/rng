@@ -46,6 +46,16 @@ message BoardState {
   repeated Card cards = 2;
 }
 
+message BoardValue {
+  uint32 pos = 1;
+  uint32 val = 2;
+}
+
+message CloseCards {
+  uint32 one = 1;
+  uint32 two = 2;
+}
+
 message KeyAssignment {
   uint32 player_id  = 1;
   string player_key = 2;
@@ -66,8 +76,9 @@ message GameStateReply {
     KeyAssignment    key_assignment    = 1;
     ConnectionUpdate connection_update = 2;
     NextPlayer       next_player       = 3;
-    uint32           player_revealed   = 4;
-    BoardState       current_board     = 5;
+    CloseCards       close_revealed    = 4;
+    BoardValue       player_revealed   = 5;
+    BoardState       current_board     = 6;
   }
 }
 

@@ -23,6 +23,7 @@ pub struct Game {
     memory: Vec<u16>,
     hidden: Vec<bool>,
     revealed: Option<u16>,
+    to_clear: Option<(u16, u16)>,
 }
 
 impl Game {
@@ -41,9 +42,10 @@ impl Game {
             pairs,
             memory,
             player_cap,
-            hidden: Vec::with_capacity(cap as usize),
+            hidden: vec![true; cap.into()],
             player: rng.random_range(0..player_cap),
             revealed: None,
+            to_clear: None,
             connected: Vec::new(),
         }
     }
@@ -67,6 +69,13 @@ impl Game {
     }
 
     #[inline(always)]
+    fn send_message_and_remove_disconnected(&mut self, msg: GameStateReply) {
+        // TODO: implement message to client that tells them who disconnected
+        self.connected
+            .retain(|p| p.try_send(Ok(msg.clone())).is_ok());
+    }
+
+    #[inline(always)]
     fn are_cards_equal(&mut self, pos: usize) -> bool {
         let Some(rpos) = self.revealed else {
             return false;
@@ -82,8 +91,8 @@ impl Game {
         };
 
         self.revealed = None;
-        self.hidden[pos] = false;
-        self.hidden[rpos as usize] = false;
+        self.hidden[pos] = true;
+        self.hidden[rpos as usize] = true;
     }
 }
 
@@ -132,6 +141,25 @@ impl GameService for GameHandler {
         if !game.hidden[pos] {
             return Err(Status::new(400.into(), "Err: already revealed"));
         }
+        game.hidden[pos] = false;
+
+        let val = game.memory[pos] as u32;
+
+        if let Some((one, two)) = game.to_clear {
+            let value = Some(Value::CloseRevealed(CloseCards {
+                one: one as u32, 
+                two: two as u32,
+            }));
+            game.send_message_and_remove_disconnected(GameStateReply { value });
+            game.to_clear = None;
+        }
+
+        game.send_message_and_remove_disconnected(GameStateReply {
+            value: Some(Value::PlayerRevealed(BoardValue {
+                val,
+                pos: pos as u32,
+            })),
+        });
 
         if game.revealed.is_some() {
             if game.are_cards_equal(pos) {
@@ -139,27 +167,20 @@ impl GameService for GameHandler {
 
                 game.revealed = None;
             } else {
+                game.to_clear = Some((game.revealed.unwrap(), pos as u16));
                 game.restore_hidden(pos);
             }
         } else {
             game.revealed = Some(pos as u16);
-            game.connected.retain(|p| {
-                p.try_send(Ok(GameStateReply {
-                    value: Some(Value::PlayerRevealed(pos as u32)),
-                }))
-                .is_ok()
-            });
         }
 
         game.player = (game.player.wrapping_add(1)) % game.player_cap;
-        let player_id = game.player as u32;
 
-        game.connected.retain(|p| {
-            p.try_send(Ok(GameStateReply {
-                value: Some(Value::NextPlayer(NextPlayer { player_id })),
-            }))
-            .is_ok()
-        });
+        let value = Some(Value::NextPlayer(NextPlayer {
+            player_id: game.player as u32,
+        })); 
+        game.send_message_and_remove_disconnected(GameStateReply { value });
+
         Ok(Response::new(Empty {}))
     }
 }
