@@ -52,15 +52,16 @@ impl Game {
 
     // TODO: return bool indicating game start failed
     pub fn start(&mut self) {
+        let mut player_id = 0;
+
         self.connected.retain(|p| {
+            player_id += 1;
             p.try_send(Ok(GameStateReply {
                 value: Some(Value::KeyAssignment(KeyAssignment {
-                    // TODO: set keys and pos
-                    player_id: 0,
-                    player_key: "".to_string(),
+                    player_id: player_id - 1,
                     state: Some(BoardState {
                         pairs: self.pairs as u32,
-                        cards: Vec::with_capacity(0),
+                        indexes: Vec::with_capacity(0),
                     }),
                 })),
             }))
@@ -117,32 +118,65 @@ impl GameService for GameHandler {
         &self,
         req: Request<RejoinRequest>,
     ) -> Result<Response<Self::RejoinGameStream>, Status> {
-        Err(Status::unimplemented("todo"))
+        // TODO: maybe send message to all clients which player is online again
+
+        let (id, _player) = {
+            let r = req.into_inner();
+            (r.id, r.player as usize)
+        };
+
+        let mut games = self.games_in_progress.lock().await;
+        let Some(game) = games.get_mut(&id) else {
+            return Err(Status::not_found("Err: invalid game id"));
+        };
+
+        let (tx, rx) = mpsc::channel(128);
+        let mut game = game.lock().await;
+
+        let (pairs, indexes) = (
+            game.pairs as u32, 
+            game.hidden
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &o)| if o { Some(i as u32) } else { None })
+                .collect::<Vec<_>>()
+        );
+
+        let value = Some(Value::CurrentBoard(BoardState { pairs, indexes }));
+        tx.send(Ok(GameStateReply { value })).await.unwrap();
+        game.connected.push(tx);
+
+        let output_stream = ReceiverStream::new(rx);
+        Ok(Response::new(
+            Box::pin(output_stream) as Self::RejoinGameStream
+        ))
     }
 
     async fn make_move(&self, req: Request<RevealRequest>) -> Result<Response<Empty>, Status> {
-        // TODO: use key to differentiate players
-        let (id, pos) = {
+        let (id, pos, player_id) = {
             let r = req.into_inner();
-            (r.id, r.pos as usize)
+            (r.id, r.pos as usize, r.player_id as u8)
         };
 
         let mut games = self.games_in_progress.lock().await;
 
         let Some(game) = games.get_mut(&id) else {
-            return Err(Status::not_found("Err: invalid Game Id"));
+            return Err(Status::not_found("Err: invalid game id"));
         };
 
         let mut game = game.lock().await;
 
+        if player_id != game.player {
+            return Err(Status::new(400.into(), "Err: not your turn"));
+        }
         if pos >= game.memory.len() {
             return Err(Status::not_found("Err: index outside of bounds"));
         }
         if !game.hidden[pos] {
             return Err(Status::new(400.into(), "Err: already revealed"));
         }
-        game.hidden[pos] = false;
 
+        game.hidden[pos] = false;
         let val = game.memory[pos] as u32;
 
         if let Some((one, two)) = game.to_clear {
@@ -164,22 +198,28 @@ impl GameService for GameHandler {
         if game.revealed.is_some() {
             if game.are_cards_equal(pos) {
                 // TODO: increase pairs for player X
-
+                let value = Some(Value::RemoveRevealed(CloseCards {
+                    one: pos as u32, 
+                    two: game.revealed.unwrap() as u32,
+                }));
+                game.send_message_and_remove_disconnected(GameStateReply { value });
                 game.revealed = None;
             } else {
                 game.to_clear = Some((game.revealed.unwrap(), pos as u16));
                 game.restore_hidden(pos);
+
             }
+
+            game.player = (game.player.wrapping_add(1)) % game.player_cap;
+
+            let value = Some(Value::NextPlayer(NextPlayer {
+                player_id: game.player as u32,
+            })); 
+
+            game.send_message_and_remove_disconnected(GameStateReply { value });
         } else {
             game.revealed = Some(pos as u16);
-        }
-
-        game.player = (game.player.wrapping_add(1)) % game.player_cap;
-
-        let value = Some(Value::NextPlayer(NextPlayer {
-            player_id: game.player as u32,
-        })); 
-        game.send_message_and_remove_disconnected(GameStateReply { value });
+        } 
 
         Ok(Response::new(Empty {}))
     }

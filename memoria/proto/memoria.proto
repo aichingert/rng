@@ -33,17 +33,12 @@ message JoinRequest {
 
 message RejoinRequest {
   uint32 id = 1;
-  string player = 2;
-}
-
-message Card {
-  uint32 value = 1;
-  uint32 index = 2;
+  uint32 player = 2;
 }
 
 message BoardState {
-  uint32 pairs = 1;
-  repeated Card cards = 2;
+  uint32 pairs            = 1;
+  repeated uint32 indexes = 2;
 }
 
 message BoardValue {
@@ -58,8 +53,7 @@ message CloseCards {
 
 message KeyAssignment {
   uint32 player_id  = 1;
-  string player_key = 2;
-  BoardState state  = 3;
+  BoardState state  = 2;
 }
 
 message ConnectionUpdate {
@@ -77,14 +71,15 @@ message GameStateReply {
     ConnectionUpdate connection_update = 2;
     NextPlayer       next_player       = 3;
     CloseCards       close_revealed    = 4;
-    BoardValue       player_revealed   = 5;
-    BoardState       current_board     = 6;
+    CloseCards       remove_revealed   = 5;
+    BoardValue       player_revealed   = 6;
+    BoardState       current_board     = 7;
   }
 }
 
 message RevealRequest {
-  uint32 id         = 1;
-  uint32 pos        = 2;
-  string player_key = 3;
+  uint32 id        = 1;
+  uint32 pos       = 2;
+  uint32 player_id = 3;
 }
 

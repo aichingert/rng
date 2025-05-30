@@ -10,7 +10,7 @@ pub mod memoria {
 }
 
 pub use memoria::{
-    BoardState, BoardValue, Card, CloseCards, ConnectionUpdate, CreateRequest, Empty,
+    BoardState, BoardValue, CloseCards, ConnectionUpdate, CreateRequest, Empty,
     GameStateReply, JoinRequest, KeyAssignment, LobbyReply, NextPlayer, RejoinRequest,
     RevealRequest,
     game_service_server::{GameService, GameServiceServer},

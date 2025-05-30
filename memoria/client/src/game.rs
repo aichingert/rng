@@ -25,7 +25,6 @@ const TEMPLATE: &str = r#"
 </div>
 "#;
 
-const PLAYER_ID: &str = "POSITION_ID";
 const PLAYER_KEY: &str = "CONNECTION_ID";
 
 #[wasm_bindgen]
@@ -33,11 +32,11 @@ pub struct GameStream(Arc<Mutex<Streaming<crate::GameStateReply>>>);
 
 #[wasm_bindgen]
 impl GameStream {
-    pub fn new(id: u32, key: String) -> js_sys::Promise {
+    pub fn new(id: u32, key: u32) -> js_sys::Promise {
         future_to_promise(async move {
             let client = crate::Client::new(crate::URL.to_string());
 
-            let stream = if !key.is_empty() {
+            let stream = if key <= u8::MAX as u32 {
                 crate::GameServiceClient::new(client)
                     .rejoin_game(crate::RejoinRequest { id, player: key })
                     .await
@@ -76,13 +75,13 @@ impl Game {
         app.set_inner_html(TEMPLATE);
 
         let id = id.parse::<u32>().unwrap();
-        let key = if let Some((_id, key)) = Game::check_cache(&win) {
+        let key = if let Some(key) = Game::get_key(&win) {
             key
         } else {
-            "".to_string()
+            (u8::MAX as u32) + 1
         };
 
-        let game_cb = Self::get_game_update_cb(id);
+        let game_cb = Self::get_game_update_cb(id, key);
 
         // TODO: make this an rc::refcell so it can be passed to a callback which
         // gets called to terminate the worker
@@ -93,17 +92,19 @@ impl Game {
         worker
             .post_message(&js_sys::Array::of2(
                 &JsValue::from(id),
-                &JsValue::from_str(&key),
+                &JsValue::from(key),
             ))
             .unwrap();
     }
 
-    fn check_cache(win: &web_sys::Window) -> Option<(u32, String)> {
+    fn get_key(win: &web_sys::Window) -> Option<u32> {
         let store = win.local_storage().ok()??;
-        let id = store.get_item(PLAYER_ID).ok()??.parse::<u32>().ok()?;
-        let key = store.get_item(PLAYER_KEY).ok()??;
+        store.get_item(PLAYER_KEY).ok()??.parse::<u32>().ok()
+    }
 
-        Some((id, key))
+    fn set_key(key: u32) -> Option<()> {
+        let store = web_sys::window()?.local_storage().ok()??;
+        store.set_item(PLAYER_KEY, &key.to_string()).ok()
     }
 
     fn update_connection(new: crate::ConnectionUpdate) -> Option<()> {
@@ -114,13 +115,12 @@ impl Game {
     }
 
     // TODO: add styling
-    fn cleanup_and_create_cards(id: u32, pairs: u32) -> Option<()> {
+    fn cleanup_and_create_cards(id: u32, key: u32, pairs: u32) -> Option<()> {
         let doc = web_sys::window()?.document()?;
 
         // TODO: mobile maybe
         let field = doc.get_element_by_id("game_field")?;
         let nodes = js_sys::Array::new();
-        field.replace_children_with_node(&nodes);
 
         for i in 0..(2 * pairs) {
             let closure = Closure::wrap(Box::new(move || {
@@ -131,7 +131,7 @@ impl Game {
                     let req = crate::RevealRequest {
                         id: id,
                         pos: i,
-                        player_key: "".to_string(),
+                        player_id: key,
                     };
                     let Err(e) = client.make_move(req).await else {
                         return;
@@ -152,10 +152,12 @@ impl Game {
             button.set_attribute("style", "width: 100px; height: 50px;").expect("err: btn style");
             closure.forget();
 
-            //nodes.push(&button.into());
-            field.append_child(&button).expect("err: append button");
+            nodes.push(&button.into());
+
+            //field.append_child(&button).expect("err: append button");
         }
 
+        field.replace_children_with_node(&nodes);
         Some(())
     }
 
@@ -172,21 +174,34 @@ impl Game {
         Some(())
     }
 
-    fn get_game_update_cb(id: u32) -> Closure<dyn FnMut(web_sys::MessageEvent)> {
+    fn remove_revealed_cards(crate::CloseCards { one, two }: crate::CloseCards) -> Option<()> {
+        let doc = web_sys::window()?.document()?;
+        doc.get_element_by_id(&one.to_string())?.remove();
+        doc.get_element_by_id(&two.to_string())?.remove();
+        Some(())
+    }
+
+    fn get_game_update_cb(id: u32, key: u32) -> Closure<dyn FnMut(web_sys::MessageEvent)> {
+        log(&format!("{id} | key: {key}"));
+
         Closure::new(move |event: web_sys::MessageEvent| {
             let rep: crate::GameStateReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
             let val = rep.value.expect("a reply from the server");
+
+            log(&format!("{:?}", val));
 
             let res = match val {
                 crate::Value::KeyAssignment(init) => {
                     // TODO: set key and id in local storage
 
                     let state = init.state.unwrap();
-                    Self::cleanup_and_create_cards(id, state.pairs)
+                    Self::set_key(init.player_id);
+                    Self::cleanup_and_create_cards(id, init.player_id, state.pairs)
                 }
                 crate::Value::ConnectionUpdate(new) => Self::update_connection(new),
                 crate::Value::PlayerRevealed(value) => Self::reveal_card(value),
                 crate::Value::CloseRevealed(value) =>  Self::close_revealed_cards(value),
+                crate::Value::RemoveRevealed(value) => Self::remove_revealed_cards(value),
                 crate::Value::NextPlayer(_) => Some(()),
                 crate::Value::CurrentBoard(_) => Some(()),
             };
