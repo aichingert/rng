@@ -14,8 +14,6 @@ extern "C" {
     fn log(s: &str);
 }
 
-
-
 const TEMPLATE: &str = r#"
 <h1># Game</h1>
 
@@ -90,10 +88,7 @@ impl Game {
         game_cb.forget();
 
         worker
-            .post_message(&js_sys::Array::of2(
-                &JsValue::from(id),
-                &JsValue::from(key),
-            ))
+            .post_message(&js_sys::Array::of2(&JsValue::from(id), &JsValue::from(key)))
             .unwrap();
     }
 
@@ -149,7 +144,9 @@ impl Game {
 
             button.set_id(&pos);
             button.set_onclick(Some(closure.as_ref().unchecked_ref()));
-            button.set_attribute("style", "width: 100px; height: 50px;").expect("err: btn style");
+            button
+                .set_attribute("style", "width: 100px; height: 50px;")
+                .expect("err: btn style");
             closure.forget();
 
             nodes.push(&button.into());
@@ -163,7 +160,8 @@ impl Game {
 
     fn reveal_card(crate::BoardValue { pos, val }: crate::BoardValue) -> Option<()> {
         let doc = web_sys::window()?.document()?;
-        doc.get_element_by_id(&pos.to_string())?.set_inner_html(&val.to_string());
+        doc.get_element_by_id(&pos.to_string())?
+            .set_inner_html(&val.to_string());
         Some(())
     }
 
@@ -200,10 +198,14 @@ impl Game {
                 }
                 crate::Value::ConnectionUpdate(new) => Self::update_connection(new),
                 crate::Value::PlayerRevealed(value) => Self::reveal_card(value),
-                crate::Value::CloseRevealed(value) =>  Self::close_revealed_cards(value),
+                crate::Value::CloseRevealed(value) => Self::close_revealed_cards(value),
                 crate::Value::RemoveRevealed(value) => Self::remove_revealed_cards(value),
                 crate::Value::NextPlayer(_) => Some(()),
-                crate::Value::CurrentBoard(_) => Some(()),
+                crate::Value::CurrentBoard(state) => {
+                    Self::cleanup_and_create_cards(id, key, state.pairs)
+                        .and(state.revealed_one.and_then(Self::reveal_card))
+                        .and(state.revealed_two.and_then(Self::reveal_card))
+                }
             };
 
             if res.is_none() {
