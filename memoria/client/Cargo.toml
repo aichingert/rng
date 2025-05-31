@@ -32,6 +32,9 @@ features = [
     "EventTarget",
     "Storage",
     "HtmlElement",
+    "CssStyleDeclaration",
+    "HtmlButtonElement",
+    "HtmlDialogElement",
     "HtmlAnchorElement",
 ]
 version = "0.3.77"

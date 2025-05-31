@@ -1,5 +1,7 @@
 pub use tonic_web_wasm_client::Client;
 
+use wasm_bindgen::JsCast;
+
 pub mod memoria {
     tonic::include_proto!("memoria");
 }
@@ -18,3 +20,8 @@ pub use lobby::LobbyStream;
 mod game;
 
 const URL: &str = "http://localhost:50051";
+
+#[inline(always)]
+pub fn get_element_as<T: wasm_bindgen::JsCast>(doc: &web_sys::Document, id: &str) -> Option<T> {
+    doc.get_element_by_id(id)?.dyn_into::<T>().ok()
+}
