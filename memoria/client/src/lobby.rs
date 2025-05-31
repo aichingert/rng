@@ -1,8 +1,8 @@
+use crate::{game::Game, get_element_as};
 use std::{
     collections::HashMap,
     sync::{Arc, LazyLock, Mutex},
 };
-use crate::get_element_as;
 
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -11,12 +11,6 @@ use wasm_bindgen_futures::{future_to_promise, js_sys};
 
 use tokio_stream::StreamExt;
 use tonic::Streaming;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
 
 const TEMPLATE: &str = r#"
 <style>
@@ -45,57 +39,71 @@ const TEMPLATE: &str = r#"
     .game-join-table {
         width: 100%;
         text-align: left; 
-        font-size: 22px;
+        font-size: 30px;
     }
 
     .create-button {
-        width: 150px;
-        height: 70px;
-        border: 0;
-        border-radius: 0.25rem;
-        background-color: #606079;
-        color: white;
-        font-family: -system-ui, sans-serif;
-        font-size: 1rem;
-        line-height: 1.2;
+        border: none;
+        border-radius: 15px;
+        background-color: #838d69;
         white-space: nowrap;
         text-decoration: none;
-        padding: 0.25rem 0.5rem;
+        padding: 18px; 
+        font-size: 35px;
         margin: 0.25rem;
         cursor: pointer;
-        color: #bb9dbd;
+    }
+
+    .form-group {
+        display: flex;
+        align-items: center;
+    }
+    .form-group label {
+        margin-right: 10px;
     }
 
     dialog {
         border: none;
-        border-radius: 8px;
-        padding: 20px;
-        background-color: white;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        width: 300px;
+        border-radius: 15px;
+        background-color: #2b2b2d; 
     }
-    label {
+
+    label, input {
         display: block;
         margin-bottom: 10px;
+        font-size: 35px;
+    }
+    input {
+        width: 80px;
     }
 </style>
 <h1># Lobby</h1>
 
-<div style="display:flex;justify-content:center;">
+<div style="display:flex;justify-content:center">
     <button id="create-game" class="create-button">Create Game</button>
 
-    <dialog id="create-dlg">
-        <h2>Game Setup</h2>
-        <form id="create-form" method="dialog">
-            <label for="numPairs">Number of Pairs:</label>
-            <input type="number" id="numPairs" name="numPairs" required min="1">
+    <dialog id="create-dlg" style="overflow:hidden">
+        <div id="dlg-area" style="width:100%;height:100%;padding:20px;">
+            <h2 style="font-size: 40px; color: #df6882; text-align: center"><b>CreateGame()</b></h2>
 
-            <label for="numPlayers">Number of Players:</label>
-            <input type="number" id="numPlayers" name="numPlayers" required min="1">
+            <form id="create-form" method="dialog" style="padding: 50px">
+                <table class="game-join-table">
+                <tr>
+                    <td><label for="pairs" style="color: #ecc3e0">Pairs:</label></td>
+                    <td><input type="number" id="pairs" name="pairs" required min="1" max="200"></td>
+                </tr>
 
-            <button id="cancel-dlg" type="button">Cancel</button>
-            <button type="submit">Submit</button>
-        </form>
+                <tr>
+                    <td><label for="players" style="color: #ecc3e0">Players:</label></td>
+                    <td><input type="number" id="players" name="players" required min="1" max="200"></td>
+                </tr>
+                </table>
+
+                <br>
+                <button id="cancel-dlg" type="button" class="create-button" style="font-size: 25px">Cancel</button>
+                <button type="submit" class="create-button" style="font-size: 25px">Submit</button>
+            </form>
+        </div>
     </dialog>
 </div>
 
@@ -172,32 +180,10 @@ impl Lobby {
             worker.set_onmessage(Some(lobby_cb.as_ref().unchecked_ref()));
             lobby_cb.forget();
 
+            Game::remove_key().unwrap();
             LOBBY.lock().unwrap().is_worker_init = true;
         }
 
-        /*
-        let cb = Closure::wrap(Box::new(move || {
-            let client = crate::Client::new(crate::URL.to_string());
-            let mut client = crate::LobbyServiceClient::new(client);
-
-            wasm_bindgen_futures::spawn_local(async move {
-                _ = client
-                    .create_game(crate::CreateRequest {
-                        pairs: 12,
-                        player_cap: 2,
-                    })
-                    .await
-                    .unwrap();
-            })
-        }) as Box<dyn Fn()>);
-
-        let btn = doc.get_element_by_id("create-game").unwrap();
-
-        //button.set_onclick(Some(closure.as_ref().unchecked_ref()));
-        btn.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
-            .unwrap();
-        cb.forget();
-        */
         Lobby::setup_create_button_and_dialog(&doc).unwrap();
 
         LOBBY
@@ -213,8 +199,11 @@ impl Lobby {
     }
 
     fn close_dialog_and_show_button(doc: &web_sys::Document) -> Option<()> {
-            doc.get_element_by_id("create-dlg")?.dyn_into::<web_sys::HtmlDialogElement>().ok()?.close();
-            doc.get_element_by_id("create-game")?.dyn_into::<web_sys::HtmlElement>().ok()?.style().set_property("display", "none").ok()
+        get_element_as::<web_sys::HtmlDialogElement>(doc, "create-dlg")?.close();
+        get_element_as::<web_sys::HtmlElement>(doc, "create-game")?
+            .style()
+            .set_property("visibility", "visible")
+            .ok()
     }
 
     fn setup_create_button_and_dialog(doc: &web_sys::Document) -> Option<()> {
@@ -223,7 +212,7 @@ impl Lobby {
             let dlg = get_element_as::<web_sys::HtmlDialogElement>(&doc, "create-dlg").unwrap();
             let btn = get_element_as::<web_sys::HtmlElement>(&doc, "create-game").unwrap();
 
-            btn.style().set_property("display", "none").unwrap();
+            btn.style().set_property("visibility", "hidden").unwrap();
             dlg.show_modal().unwrap();
         }) as Box<dyn Fn()>);
 
@@ -231,19 +220,31 @@ impl Lobby {
             event.prevent_default();
             let doc = web_sys::window().unwrap().document().unwrap();
 
-            /*
-            let input = form.query_selector("#input").unwrap().unwrap().dyn_into().unwrap();
-            let value = input.value();
-            */
+            let pairs = get_element_as::<web_sys::HtmlInputElement>(&doc, "pairs").unwrap();
+            let pairs = pairs.value().parse::<u32>().unwrap();
+            let player_cap = get_element_as::<web_sys::HtmlInputElement>(&doc, "players").unwrap();
+            let player_cap = player_cap.value().parse::<u32>().unwrap();
 
-            // Log the input value (or perform any action you want)
+            let client = crate::Client::new(crate::URL.to_string());
+            let mut client = crate::LobbyServiceClient::new(client);
 
-            // Close the dialog
+            wasm_bindgen_futures::spawn_local(async move {
+                _ = client
+                    .create_game(crate::CreateRequest { pairs, player_cap })
+                    .await
+                    .unwrap();
+            });
+
             Lobby::close_dialog_and_show_button(&doc).unwrap();
         }) as Box<dyn FnMut(web_sys::Event)>);
 
+        let dlg_event_stop = Closure::wrap(Box::new(move |event: web_sys::Event| {
+            event.stop_propagation();
+        }) as Box<dyn FnMut(web_sys::Event)>);
+
         let dlg_cancel_cb = Closure::wrap(Box::new(move || {
-            Lobby::close_dialog_and_show_button(&web_sys::window().unwrap().document().unwrap()).unwrap()
+            Lobby::close_dialog_and_show_button(&web_sys::window().unwrap().document().unwrap())
+                .unwrap()
         }) as Box<dyn Fn()>);
 
         let onclick = Some(create_cb.as_ref().unchecked_ref());
@@ -252,10 +253,22 @@ impl Lobby {
 
         let onclick = Some(dlg_cancel_cb.as_ref().unchecked_ref());
         get_element_as::<web_sys::HtmlElement>(&doc, "cancel-dlg")?.set_onclick(onclick);
+
+        // dialog close and dialog event stop are created to be able
+        // to click outside the dialog and closing it because of that
+        get_element_as::<web_sys::HtmlDialogElement>(&doc, "create-dlg")?
+            .add_event_listener_with_callback("click", dlg_cancel_cb.as_ref().unchecked_ref())
+            .ok()?;
         dlg_cancel_cb.forget();
 
+        get_element_as::<web_sys::HtmlElement>(&doc, "dlg-area")?
+            .add_event_listener_with_callback("click", dlg_event_stop.as_ref().unchecked_ref())
+            .ok()?;
+        dlg_event_stop.forget();
+
         let form = doc.get_element_by_id("create-form")?;
-        form.add_event_listener_with_callback("submit", dlg_cb.as_ref().unchecked_ref()).ok()?;
+        form.add_event_listener_with_callback("submit", dlg_cb.as_ref().unchecked_ref())
+            .ok()?;
         dlg_cb.forget();
 
         Some(())
@@ -266,7 +279,9 @@ impl Lobby {
         let li = doc.create_element("li").ok()?;
         li.set_inner_html(&format!("<button id='{id}' class='game-join-button' onclick='location.href=\"/#/game/{id}\"'><table class='game-join-table'><tr><td style='color: #bb9dbd'>pairs:</td><td class='pairs' style='color: #e0a363'>{pairs}</td></tr><tr><td style='color: #bb9dbd'>connected:</td><td class='connected' style='color: #e0a363'>{connected} / {player_cap}</td></tr></table></button>"));
 
-        doc.get_element_by_id("button-list")?.append_child(&li).ok()?;
+        doc.get_element_by_id("button-list")?
+            .append_child(&li)
+            .ok()?;
         Some(())
     }
 

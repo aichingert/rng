@@ -101,6 +101,10 @@ impl Game {
         let store = web_sys::window()?.local_storage().ok()??;
         store.set_item(PLAYER_KEY, &key.to_string()).ok()
     }
+    pub fn remove_key() -> Option<()> {
+        let store = web_sys::window()?.local_storage().ok()??;
+        store.remove_item(PLAYER_KEY).ok()
+    }
 
     fn update_connection(new: crate::ConnectionUpdate) -> Option<()> {
         let doc = web_sys::window()?.document()?;
@@ -150,8 +154,6 @@ impl Game {
             closure.forget();
 
             nodes.push(&button.into());
-
-            //field.append_child(&button).expect("err: append button");
         }
 
         field.replace_children_with_node(&nodes);
