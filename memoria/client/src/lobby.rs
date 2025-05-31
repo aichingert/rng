@@ -90,12 +90,12 @@ const TEMPLATE: &str = r#"
                 <table class="game-join-table">
                 <tr>
                     <td><label for="pairs" style="color: #ecc3e0">Pairs:</label></td>
-                    <td><input type="number" id="pairs" name="pairs" required min="1" max="200"></td>
+                    <td><input type="number" id="pairs" name="pairs" value="30" required min="1" max="200"></td>
                 </tr>
 
                 <tr>
                     <td><label for="players" style="color: #ecc3e0">Players:</label></td>
-                    <td><input type="number" id="players" name="players" required min="1" max="200"></td>
+                    <td><input type="number" id="players" name="players" value="2" required min="1" max="200"></td>
                 </tr>
                 </table>
 

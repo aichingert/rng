@@ -157,7 +157,7 @@ impl GameService for GameHandler {
             game.hidden
                 .iter()
                 .enumerate()
-                .filter_map(|(i, &o)| if o { Some(i as u32) } else { None })
+                .filter_map(|(i, &o)| if !o { Some(i as u32) } else { None })
                 .collect::<Vec<_>>(),
         );
 

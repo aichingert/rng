@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use crate::get_element_as;
+
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast, JsValue};
@@ -8,19 +10,31 @@ use wasm_bindgen_futures::{future_to_promise, js_sys};
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
 const TEMPLATE: &str = r#"
 <h1># Game</h1>
 
-<div id="game_field" style="display: flex; justify-content: center; font-size: 30px; padding: 20px">
-    <p style="color: #bb9dbd; padding-right: 5px">Waiting for players:</p>
-    <p id="waiting" style="color: #e0a363"></p>
+<style>
+
+    .game-field {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+        padding: 0px;
+    }
+
+    p {
+        font-size: 35px;
+    }
+</style>
+
+<div id="game_field" class="game-field"> 
 </div>
+"#;
+
+const WAITING: &str = r#"
+<p style="color: #bb9dbd; padding-right: 5px">Waiting for players:</p>
+<p id="waiting" style="color: #e0a363"></p>
 "#;
 
 const PLAYER_KEY: &str = "CONNECTION_ID";
@@ -76,6 +90,9 @@ impl Game {
         let key = if let Some(key) = Game::get_key(&win) {
             key
         } else {
+            doc.get_element_by_id("game_field")
+                .unwrap()
+                .set_inner_html(WAITING);
             (u8::MAX as u32) + 1
         };
 
@@ -132,10 +149,10 @@ impl Game {
                         pos: i,
                         player_id: key,
                     };
-                    let Err(e) = client.make_move(req).await else {
+                    let Err(_) = client.make_move(req).await else {
+                        // TODO: better error handling
                         return;
                     };
-                    log(&e.to_string());
                 });
             }) as Box<dyn Fn()>);
 
@@ -149,7 +166,7 @@ impl Game {
             button.set_id(&pos);
             button.set_onclick(Some(closure.as_ref().unchecked_ref()));
             button
-                .set_attribute("style", "width: 100px; height: 50px;")
+                .set_attribute("style", "width: 100px; height: 50px; padding: 5px;")
                 .expect("err: btn style");
             closure.forget();
 
@@ -174,26 +191,26 @@ impl Game {
         Some(())
     }
 
+    fn remove_revealed_card(doc: &web_sys::Document, index: u32) -> Option<()> {
+        get_element_as::<web_sys::HtmlElement>(&doc, &index.to_string())?
+            .style()
+            .set_property("visibility", "hidden")
+            .ok()
+    }
+
     fn remove_revealed_cards(crate::CloseCards { one, two }: crate::CloseCards) -> Option<()> {
         let doc = web_sys::window()?.document()?;
-        doc.get_element_by_id(&one.to_string())?.remove();
-        doc.get_element_by_id(&two.to_string())?.remove();
-        Some(())
+        Self::remove_revealed_card(&doc, one)?;
+        Self::remove_revealed_card(&doc, two)
     }
 
     fn get_game_update_cb(id: u32, key: u32) -> Closure<dyn FnMut(web_sys::MessageEvent)> {
-        log(&format!("{id} | key: {key}"));
-
         Closure::new(move |event: web_sys::MessageEvent| {
             let rep: crate::GameStateReply = serde_wasm_bindgen::from_value(event.data()).unwrap();
             let val = rep.value.expect("a reply from the server");
 
-            log(&format!("{:?}", val));
-
             let res = match val {
                 crate::Value::KeyAssignment(init) => {
-                    // TODO: set key and id in local storage
-
                     let state = init.state.unwrap();
                     Self::set_key(init.player_id);
                     Self::cleanup_and_create_cards(id, init.player_id, state.pairs)
@@ -204,14 +221,22 @@ impl Game {
                 crate::Value::RemoveRevealed(value) => Self::remove_revealed_cards(value),
                 crate::Value::NextPlayer(_) => Some(()),
                 crate::Value::CurrentBoard(state) => {
+                    let doc = web_sys::window().unwrap().document().unwrap();
+
                     Self::cleanup_and_create_cards(id, key, state.pairs)
+                        .and(
+                            state
+                                .indexes
+                                .iter()
+                                .try_fold((), |_, &i| Self::remove_revealed_card(&doc, i)),
+                        )
                         .and(state.revealed_one.and_then(Self::reveal_card))
                         .and(state.revealed_two.and_then(Self::reveal_card))
                 }
             };
 
             if res.is_none() {
-                log("there was an error");
+                res.expect("error in game update callback");
             }
         })
     }
