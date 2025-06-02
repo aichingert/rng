@@ -23,6 +23,24 @@ const TEMPLATE: &str = r#"
         padding: 0px;
     }
 
+    .memory-card {
+        border: none;
+        width: 100px; 
+        height: 50px; 
+        padding: 5px; 
+        background-color: #706c6c;
+    }
+    
+    .memory-card-revealed {
+        border: 1px solid #f3be7c;
+        width: 100px; 
+        height: 50px; 
+        padding: 5px; 
+        color: #f3be7c;
+        font-size: 25px;
+        background-color: #838d69;
+    }
+
     p {
         font-size: 35px;
     }
@@ -165,9 +183,7 @@ impl Game {
 
             button.set_id(&pos);
             button.set_onclick(Some(closure.as_ref().unchecked_ref()));
-            button
-                .set_attribute("style", "width: 100px; height: 50px; padding: 5px;")
-                .expect("err: btn style");
+            button.set_attribute("class", "memory-card").expect("err: btn style");
             closure.forget();
 
             nodes.push(&button.into());
@@ -179,15 +195,22 @@ impl Game {
 
     fn reveal_card(crate::BoardValue { pos, val }: crate::BoardValue) -> Option<()> {
         let doc = web_sys::window()?.document()?;
-        doc.get_element_by_id(&pos.to_string())?
-            .set_inner_html(&val.to_string());
+        let btn = doc.get_element_by_id(&pos.to_string())?;
+        btn.set_inner_html(&val.to_string());
+        btn.set_attribute("class", "memory-card-revealed").expect("memory card revealed");
+
         Some(())
     }
 
     fn close_revealed_cards(crate::CloseCards { one, two }: crate::CloseCards) -> Option<()> {
         let doc = web_sys::window()?.document()?;
-        doc.get_element_by_id(&one.to_string())?.set_inner_html("");
-        doc.get_element_by_id(&two.to_string())?.set_inner_html("");
+        let btn = doc.get_element_by_id(&one.to_string())?;
+        btn.set_inner_html("");
+        btn.set_attribute("class", "memory-card").expect("memory card closed");
+
+        let btn = doc.get_element_by_id(&two.to_string())?;
+        btn.set_inner_html("");
+        btn.set_attribute("class", "memory-card").expect("memory card closed");
         Some(())
     }
 

@@ -101,7 +101,7 @@ const TEMPLATE: &str = r#"
 
                 <br>
                 <button id="cancel-dlg" type="button" class="create-button" style="font-size: 25px">Cancel</button>
-                <button type="submit" class="create-button" style="font-size: 25px">Submit</button>
+                <button type="submit" class="create-button" style="font-size: 25px">Create</button>
             </form>
         </div>
     </dialog>
