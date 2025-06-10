@@ -1,8 +1,0 @@
-= zast
-aichingert
-:icons: font
-:toc:
-:toclevels: 3
-
-Zast is a multiplayer space shooter focusing on small space ships which can shoot
-other space ships. 
